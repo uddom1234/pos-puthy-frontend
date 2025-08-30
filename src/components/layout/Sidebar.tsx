@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import {
   HomeIcon,
   ShoppingCartIcon,
@@ -12,27 +13,54 @@ import {
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  collapsed?: boolean;
+  mobileMenuOpen?: boolean;
+  onMobileMenuClose?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ 
+  collapsed = false, 
+  mobileMenuOpen = false, 
+  onMobileMenuClose 
+}) => {
   const { isAdmin } = useAuth();
+  const { t } = useLanguage();
 
   const navItems = [
-    { to: '/dashboard', icon: HomeIcon, label: 'Dashboard' },
-    { to: '/orders', icon: ShoppingCartIcon, label: 'Orders' },
-    { to: '/pos', icon: ClipboardDocumentListIcon, label: 'POS Terminal' },
-    { to: '/inventory', icon: CubeIcon, label: 'Inventory' },
-    { to: '/income-expense', icon: CurrencyDollarIcon, label: 'Income & Expense' },
-    { to: '/reports', icon: ChartBarIcon, label: 'Reports', adminOnly: true },
-    { to: '/customers', icon: UserGroupIcon, label: 'Customers' },
-    { to: '/settings', icon: Cog6ToothIcon, label: 'Settings' },
+    { to: '/dashboard', icon: HomeIcon, label: t('dashboard') },
+    { to: '/orders', icon: ShoppingCartIcon, label: t('orders') },
+    { to: '/pos', icon: ClipboardDocumentListIcon, label: t('pos') },
+    { to: '/inventory', icon: CubeIcon, label: t('inventory') },
+    { to: '/income-expense', icon: CurrencyDollarIcon, label: t('income_expense') },
+    { to: '/reports', icon: ChartBarIcon, label: t('reports'), adminOnly: true },
+    { to: '/customers', icon: UserGroupIcon, label: t('customers') },
+    { to: '/settings', icon: Cog6ToothIcon, label: t('settings') },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
+  const handleNavClick = () => {
+    // Close mobile menu when a nav item is clicked
+    if (onMobileMenuClose) {
+      onMobileMenuClose();
+    }
+  };
+
   return (
-    <div className="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
+    <div className={`bg-gray-800 dark:bg-gray-900 text-white dark:text-gray-100 ${collapsed ? 'w-16' : 'w-64'} space-y-6 py-7 px-2 
+      fixed inset-y-0 left-0 z-30 transform transition-all duration-200 ease-in-out border-r border-gray-700 dark:border-gray-600
+      ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+      md:relative md:translate-x-0`}>
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Café POS</h1>
-        <p className="text-gray-400 text-sm">Point of Sale System</p>
+        {collapsed ? (
+          <h1 className="text-lg font-bold text-white dark:text-gray-100">CP</h1>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold text-white dark:text-gray-100">Café POS</h1>
+            <p className="text-gray-400 dark:text-gray-300 text-sm">Point of Sale System</p>
+          </>
+        )}
       </div>
       
       <nav className="space-y-2">
@@ -42,16 +70,18 @@ const Sidebar: React.FC = () => {
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={handleNavClick}
               className={({ isActive }) =>
-                `flex items-center space-x-3 py-2 px-4 rounded transition duration-200 ${
+                `flex items-center ${collapsed ? 'justify-center' : 'space-x-3'} py-2 px-4 rounded transition duration-200 ${
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ? 'bg-primary-600 dark:bg-primary-500 text-white dark:text-white'
+                    : 'text-gray-300 dark:text-gray-400 hover:bg-gray-700 dark:hover:bg-gray-800 hover:text-white dark:hover:text-gray-100'
                 }`
               }
+              title={collapsed ? item.label : undefined}
             >
               <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              {!collapsed && <span>{item.label}</span>}
             </NavLink>
           );
         })}

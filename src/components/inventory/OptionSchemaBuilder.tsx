@@ -1,4 +1,5 @@
 import React from 'react';
+import NumberInput from '../common/NumberInput';
 
 export type OptionFieldType = 'single' | 'multi';
 
@@ -95,7 +96,14 @@ const OptionSchemaBuilder: React.FC<Props> = ({ value, onChange }) => {
                 <input className="input-field min-w-0" placeholder="Label" value={opt.label} onChange={(e) => updateOption(fi, oi, 'label', e.target.value)} />
                 <input className="input-field min-w-0" placeholder="Value" value={opt.value} onChange={(e) => updateOption(fi, oi, 'value', e.target.value)} />
                 <div className="flex items-center space-x-2">
-                  <input className="input-field min-w-0" type="number" step="0.01" placeholder="Price delta" value={opt.priceDelta} onChange={(e) => updateOption(fi, oi, 'priceDelta', e.target.value)} />
+                  <NumberInput
+                    value={opt.priceDelta || null}
+                    onChange={(value) => updateOption(fi, oi, 'priceDelta', value || 0)}
+                    placeholder="0.00"
+                    step={0.01}
+                    allowDecimals={true}
+                    className="input-field min-w-0"
+                  />
                   <button type="button" className="text-red-600" onClick={() => removeOption(fi, oi)}>Remove</button>
                 </div>
               </div>

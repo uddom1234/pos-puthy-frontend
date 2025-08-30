@@ -24,6 +24,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
     size?: 'small' | 'medium' | 'large';
     sugar?: 'less' | 'normal' | 'extra';
     addOns: AddOn[];
+    [key: string]: any;
   }>({
     size: product.category === 'coffee' ? 'medium' : undefined,
     sugar: product.category === 'coffee' ? 'normal' : undefined,

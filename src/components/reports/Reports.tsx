@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { reportsAPI } from '../../services/api';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { CalendarIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useCallback } from 'react';
+import { reportsAPI, categoriesAPI } from '../../services/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { DocumentArrowDownIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
 interface SalesSummary {
   period: string;
@@ -10,48 +10,103 @@ interface SalesSummary {
   totalIncome: number;
   netProfit: number;
   transactionCount: number;
+  paidTransactionCount: number;
+  unpaidTransactionCount: number;
+  orderCount: number;
+  orderTotal: number;
+  totalItemsSold: number;
+  averageOrderValue: number;
+  incomeByCategory: Record<string, number>;
+  expenseByCategory: Record<string, number>;
+  itemsSold: Array<{
+    productName: string;
+    productId: string | null;
+    category: string;
+    quantity: number;
+    revenue: number;
+    avgPrice: number;
+    orderCount: number;
+  }>;
+  categoryBreakdown: Array<{
+    category: string;
+    quantity: number;
+    revenue: number;
+    uniqueProducts: number;
+  }>;
+  hourlyData: Array<{
+    hour: number;
+    transactionCount: number;
+    revenue: number;
+    itemsSold: number;
+  }>;
 }
 
 const Reports: React.FC = () => {
-  const [dailySummary, setDailySummary] = useState<SalesSummary | null>(null);
-  const [monthlySummary, setMonthlySummary] = useState<SalesSummary | null>(null);
+  const [reportData, setReportData] = useState<SalesSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'monthly'>('daily');
+  const [categories, setCategories] = useState<string[]>([]);
+  const [filters, setFilters] = useState({
+    period: 'daily' as 'daily' | 'monthly',
+    startDate: '',
+    endDate: '',
+    category: '',
+  });
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
+  const fetchCategories = async () => {
+    try {
+      const categoryData = await categoriesAPI.list();
+      setCategories(categoryData);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
-      const [dailyData, monthlyData] = await Promise.all([
-        reportsAPI.getSalesSummary('daily'),
-        reportsAPI.getSalesSummary('monthly'),
-      ]);
+      const params: any = {};
+      
+      if (filters.startDate && filters.endDate) {
+        params.startDate = filters.startDate;
+        params.endDate = filters.endDate;
+      } else {
+        params.period = filters.period;
+      }
+      
+      if (filters.category) {
+        params.category = filters.category;
+      }
 
-      setDailySummary(dailyData);
-      setMonthlySummary(monthlyData);
+      const data = await reportsAPI.getSalesSummary(params);
+      setReportData(data);
     } catch (error) {
       console.error('Error fetching reports:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.startDate, filters.endDate, filters.period, filters.category]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchReports();
+  }, [fetchReports]);
 
   const handleExport = () => {
-    // Mock export functionality
-    const data = selectedPeriod === 'daily' ? dailySummary : monthlySummary;
-    if (!data) return;
+    if (!reportData) return;
 
     const exportData = {
-      period: data.period,
+      period: reportData.period,
       summary: {
-        totalRevenue: data.totalRevenue,
-        totalExpenses: data.totalExpenses,
-        netProfit: data.netProfit,
-        transactionCount: data.transactionCount,
+        totalRevenue: reportData.totalRevenue,
+        totalExpenses: reportData.totalExpenses,
+        netProfit: reportData.netProfit,
+        transactionCount: reportData.transactionCount,
+        totalItemsSold: reportData.totalItemsSold,
+        averageOrderValue: reportData.averageOrderValue,
       },
+      itemsSold: reportData.itemsSold,
+      categoryBreakdown: reportData.categoryBreakdown,
+      hourlyData: reportData.hourlyData,
       generatedAt: new Date().toISOString(),
     };
 
@@ -59,30 +114,14 @@ const Reports: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sales-report-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `sales-report-${filters.period || 'custom'}-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  // Mock data for charts
-  const revenueData = [
-    { name: 'Mon', revenue: 1200, expenses: 800 },
-    { name: 'Tue', revenue: 1500, expenses: 900 },
-    { name: 'Wed', revenue: 1800, expenses: 700 },
-    { name: 'Thu', revenue: 2200, expenses: 1100 },
-    { name: 'Fri', revenue: 2800, expenses: 1200 },
-    { name: 'Sat', revenue: 3200, expenses: 1300 },
-    { name: 'Sun', revenue: 2600, expenses: 1000 },
-  ];
-
-  const categoryData = [
-    { name: 'Coffee', value: 45, color: '#8B5CF6' },
-    { name: 'Food', value: 35, color: '#06B6D4' },
-    { name: 'Beverages', value: 15, color: '#10B981' },
-    { name: 'Desserts', value: 5, color: '#F59E0B' },
-  ];
+  const COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#8B5A2B'];
 
   if (loading) {
     return (
@@ -92,24 +131,11 @@ const Reports: React.FC = () => {
     );
   }
 
-  const currentSummary = selectedPeriod === 'daily' ? dailySummary : monthlySummary;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Sales Reports</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Sales Reports & Analytics</h1>
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <CalendarIcon className="h-5 w-5 text-gray-400" />
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as any)}
-              className="input-field min-w-0"
-            >
-              <option value="daily">Daily</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
           <button
             onClick={handleExport}
             className="btn-outline flex items-center space-x-2"
@@ -120,126 +146,230 @@ const Reports: React.FC = () => {
         </div>
       </div>
 
+      {/* Filters */}
+      <div className="card p-6">
+        <div className="flex items-center space-x-2 mb-4">
+          <FunnelIcon className="h-5 w-5 text-gray-500" />
+          <h3 className="text-lg font-semibold">Filters</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
+            <select
+              value={filters.period}
+              onChange={(e) => setFilters(prev => ({ ...prev, period: e.target.value as any }))}
+              className="input-field"
+            >
+              <option value="daily">Daily</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+              className="input-field"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+              className="input-field"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+              className="input-field"
+            >
+              <option value="">All Categories</option>
+              {categories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex items-end">
+            <button
+              onClick={() => setFilters({ period: 'daily', startDate: '', endDate: '', category: '' })}
+              className="btn-outline w-full"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Summary Cards */}
-      {currentSummary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {reportData && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="card p-6 bg-blue-50 border-blue-200">
             <h3 className="text-lg font-semibold text-blue-900">Total Revenue</h3>
-            <p className="text-3xl font-bold text-blue-600">${currentSummary.totalRevenue.toFixed(2)}</p>
-            <p className="text-sm text-blue-700 mt-1">{selectedPeriod} period</p>
+            <p className="text-3xl font-bold text-blue-600">${reportData.totalRevenue.toFixed(2)}</p>
+            <p className="text-sm text-blue-700 mt-1">{reportData.transactionCount} transactions</p>
           </div>
-          <div className="card p-6 bg-red-50 border-red-200">
-            <h3 className="text-lg font-semibold text-red-900">Total Expenses</h3>
-            <p className="text-3xl font-bold text-red-600">${currentSummary.totalExpenses.toFixed(2)}</p>
-            <p className="text-sm text-red-700 mt-1">{selectedPeriod} period</p>
-          </div>
+          
           <div className="card p-6 bg-green-50 border-green-200">
-            <h3 className="text-lg font-semibold text-green-900">Net Profit</h3>
-            <p className="text-3xl font-bold text-green-600">${currentSummary.netProfit.toFixed(2)}</p>
-            <p className="text-sm text-green-700 mt-1">
-              Margin: {((currentSummary.netProfit / currentSummary.totalRevenue) * 100).toFixed(1)}%
-            </p>
+            <h3 className="text-lg font-semibold text-green-900">Items Sold</h3>
+            <p className="text-3xl font-bold text-green-600">{reportData.totalItemsSold}</p>
+            <p className="text-sm text-green-700 mt-1">Across all products</p>
           </div>
+          
           <div className="card p-6 bg-purple-50 border-purple-200">
-            <h3 className="text-lg font-semibold text-purple-900">Transactions</h3>
-            <p className="text-3xl font-bold text-purple-600">{currentSummary.transactionCount}</p>
-            <p className="text-sm text-purple-700 mt-1">
-              Avg: ${(currentSummary.totalRevenue / currentSummary.transactionCount).toFixed(2)}
+            <h3 className="text-lg font-semibold text-purple-900">Avg Order Value</h3>
+            <p className="text-3xl font-bold text-purple-600">${reportData.averageOrderValue.toFixed(2)}</p>
+            <p className="text-sm text-purple-700 mt-1">Per transaction</p>
+          </div>
+          
+          <div className="card p-6 bg-orange-50 border-orange-200">
+            <h3 className="text-lg font-semibold text-orange-900">Net Profit</h3>
+            <p className="text-3xl font-bold text-orange-600">${reportData.netProfit.toFixed(2)}</p>
+            <p className="text-sm text-orange-700 mt-1">
+              Margin: {reportData.totalRevenue > 0 ? ((reportData.netProfit / reportData.totalRevenue) * 100).toFixed(1) : 0}%
             </p>
           </div>
         </div>
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue vs Expenses Chart */}
+      {reportData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Selling Items */}
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-4">Top Selling Items</h3>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {reportData.itemsSold.slice(0, 10).map((item, index) => (
+                <div key={item.productId || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{item.productName}</div>
+                    <div className="text-sm text-gray-500">{item.category} • Qty: {item.quantity}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium text-gray-900">${item.revenue.toFixed(2)}</div>
+                    <div className="text-sm text-gray-500">${item.avgPrice.toFixed(2)} avg</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Category Breakdown */}
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-4">Sales by Category</h3>
+            {reportData.categoryBreakdown.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reportData.categoryBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      dataKey="revenue"
+                      label={({ category, revenue }) => `${category}: $${revenue.toFixed(0)}`}
+                    >
+                      {reportData.categoryBreakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No data available</p>
+              </div>
+            )}
+          </div>
+
+          {/* Hourly Sales Pattern */}
+          {reportData.hourlyData.length > 0 && (
+            <div className="card p-6 lg:col-span-2">
+              <h3 className="text-lg font-semibold mb-4">Hourly Sales Pattern</h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={reportData.hourlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="hour" 
+                      tickFormatter={(hour) => `${hour}:00`}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      labelFormatter={(hour) => `Hour: ${hour}:00`}
+                      formatter={(value, name) => [
+                        name === 'revenue' ? `$${Number(value).toFixed(2)}` : value,
+                        name === 'revenue' ? 'Revenue' : name === 'itemsSold' ? 'Items Sold' : 'Transactions'
+                      ]}
+                    />
+                    <Bar dataKey="revenue" fill="#8B5CF6" name="revenue" />
+                    <Bar dataKey="itemsSold" fill="#06B6D4" name="itemsSold" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Category Performance Table */}
+      {reportData && reportData.categoryBreakdown.length > 0 && (
         <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Revenue vs Expenses (Last 7 Days)</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value}`, '']} />
-                <Bar dataKey="revenue" fill="#8B5CF6" name="Revenue" />
-                <Bar dataKey="expenses" fill="#EF4444" name="Expenses" />
-              </BarChart>
-            </ResponsiveContainer>
+          <h3 className="text-lg font-semibold mb-4">Category Performance</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items Sold</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unique Products</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Revenue per Item</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {reportData.categoryBreakdown.map((category, index) => (
+                  <tr key={category.category}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {category.category}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {category.quantity}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      ${category.revenue.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {category.uniqueProducts}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      ${category.quantity > 0 ? (category.revenue / category.quantity).toFixed(2) : '0.00'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
+      )}
 
-        {/* Sales by Category */}
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Sales by Category</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+      {!reportData && !loading && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No data available for the selected filters</p>
         </div>
-
-        {/* Revenue Trend */}
-        <div className="card p-6 lg:col-span-2">
-          <h3 className="text-lg font-semibold mb-4">Revenue Trend</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value}`, 'Revenue']} />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#8B5CF6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#8B5CF6', r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="card p-6">
-        <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">
-              {currentSummary ? (currentSummary.totalRevenue / currentSummary.transactionCount).toFixed(2) : '0.00'}
-            </div>
-            <div className="text-sm text-gray-600">Average Order Value</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">
-              {currentSummary ? ((currentSummary.netProfit / currentSummary.totalRevenue) * 100).toFixed(1) : '0.0'}%
-            </div>
-            <div className="text-sm text-gray-600">Profit Margin</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600 mb-2">
-              {currentSummary ? Math.round(currentSummary.transactionCount / 7) : 0}
-            </div>
-            <div className="text-sm text-gray-600">Daily Avg Transactions</div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

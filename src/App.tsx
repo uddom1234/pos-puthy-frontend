@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Login from './components/auth/Login';
@@ -17,8 +19,10 @@ const Settings = React.lazy(() => import('./components/settings/Settings'));
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <Router>
         <div className="App">
           <Routes>
             {/* Public routes */}
@@ -122,8 +126,10 @@ function App() {
             />
           </Routes>
         </div>
-      </Router>
-    </AuthProvider>
+          </Router>
+        </AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { incomeExpenseAPI, IncomeExpense, reportsAPI } from '../../services/api';
-import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useCallback } from 'react';
+import { incomeExpenseAPI, IncomeExpense } from '../../services/api';
+import { PlusIcon, FunnelIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import NumberInput from '../common/NumberInput';
 
 const IncomeExpensePage: React.FC = () => {
   const [entries, setEntries] = useState<IncomeExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<IncomeExpense | null>(null);
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -13,15 +17,9 @@ const IncomeExpensePage: React.FC = () => {
     category: '',
   });
 
-  useEffect(() => {
-    fetchEntries();
-    const id = setInterval(fetchEntries, 10000);
-    return () => clearInterval(id);
-  }, [filters]);
-
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const data = await incomeExpenseAPI.getAll({
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
@@ -32,20 +30,91 @@ const IncomeExpensePage: React.FC = () => {
     } catch (error) {
       console.error('Error fetching entries:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
+    }
+  }, [filters.startDate, filters.endDate, filters.type, filters.category]);
+
+  useEffect(() => {
+    fetchEntries(true); // Initial load with loading state
+  }, [fetchEntries]);
+
+  const handleSaveEntry = async (entryData: any) => {
+    try {
+      if (editingEntry) {
+        await incomeExpenseAPI.update(editingEntry.id, entryData);
+      } else {
+        await incomeExpenseAPI.create(entryData);
+      }
+      fetchEntries();
+      setShowAddModal(false);
+      setEditingEntry(null);
+    } catch (error) {
+      console.error('Error saving entry:', error);
+      alert('Failed to save entry');
     }
   };
 
-  const AddEntryModal: React.FC<{
+  const handleDeleteEntry = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this entry?')) return;
+    
+    try {
+      setIsDeleting(true);
+      await incomeExpenseAPI.delete(id);
+      fetchEntries();
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      alert('Failed to delete entry');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEntries.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedEntries.size} selected entries?`)) return;
+    
+    try {
+      setIsDeleting(true);
+      await incomeExpenseAPI.bulkDelete(Array.from(selectedEntries));
+      setSelectedEntries(new Set());
+      fetchEntries();
+    } catch (error) {
+      console.error('Error bulk deleting entries:', error);
+      alert('Failed to delete entries');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleSelectEntry = (id: string) => {
+    const newSelected = new Set(selectedEntries);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedEntries(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedEntries.size === entries.length) {
+      setSelectedEntries(new Set());
+    } else {
+      setSelectedEntries(new Set(entries.map(entry => entry.id)));
+    }
+  };
+
+  const EntryModal: React.FC<{
+    entry?: IncomeExpense | null;
     onSave: (entry: any) => void;
     onCancel: () => void;
-  }> = ({ onSave, onCancel }) => {
+  }> = ({ entry, onSave, onCancel }) => {
     const [formData, setFormData] = useState({
-      type: 'income' as 'income' | 'expense',
-      category: '',
-      description: '',
-      amount: 0,
-      date: new Date().toISOString().split('T')[0],
+      type: (entry?.type || 'income') as 'income' | 'expense',
+      category: entry?.category || '',
+      description: entry?.description || '',
+      amount: entry?.amount || null,
+      date: entry?.date ? new Date(entry.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     });
 
     const categories = {
@@ -111,14 +180,13 @@ const IncomeExpensePage: React.FC = () => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
+              <NumberInput
                 value={formData.amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                onChange={(value) => setFormData(prev => ({ ...prev, amount: value }))}
+                placeholder="0.00"
+                step={0.01}
+                min={0}
                 className="input-field"
-                required
               />
             </div>
             
@@ -145,17 +213,6 @@ const IncomeExpensePage: React.FC = () => {
         </div>
       </div>
     );
-  };
-
-  const handleSaveEntry = async (entryData: any) => {
-    try {
-      await incomeExpenseAPI.create(entryData);
-      fetchEntries();
-      setShowAddModal(false);
-    } catch (error) {
-      console.error('Error saving entry:', error);
-      alert('Error saving entry');
-    }
   };
 
   const getTotalIncome = () => {
@@ -187,7 +244,7 @@ const IncomeExpensePage: React.FC = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Income & Expense Tracking</h1>
         <div className="flex space-x-3">
-          <button onClick={fetchEntries} className="btn-outline">Refresh</button>
+          <button onClick={() => fetchEntries(false)} className="btn-outline">Refresh</button>
           <button
             onClick={() => setShowAddModal(true)}
             className="btn-primary flex items-center space-x-2"
@@ -266,12 +323,48 @@ const IncomeExpensePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Actions */}
+      {selectedEntries.size > 0 && (
+        <div className="card bg-blue-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-blue-800">
+              {selectedEntries.size} entries selected
+            </p>
+            <button
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+              className="btn-secondary bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </div>
+              ) : (
+                <>
+                  <TrashIcon className="h-4 w-4 mr-1" />
+                  Delete Selected
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Entries Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedEntries.size === entries.length && entries.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
@@ -287,11 +380,22 @@ const IncomeExpensePage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {entries.map((entry) => (
-                <tr key={entry.id}>
+                <tr key={entry.id} className={selectedEntries.has(entry.id) ? 'bg-blue-50' : ''}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedEntries.has(entry.id)}
+                      onChange={() => handleSelectEntry(entry.id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(entry.date).toLocaleDateString()}
                   </td>
@@ -315,6 +419,25 @@ const IncomeExpensePage: React.FC = () => {
                       {entry.type === 'income' ? '+' : '-'}${entry.amount.toFixed(2)}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setEditingEntry(entry)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEntry(entry.id)}
+                        disabled={isDeleting}
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                        title="Delete"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -322,11 +445,15 @@ const IncomeExpensePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Entry Modal */}
-      {showAddModal && (
-        <AddEntryModal
+      {/* Add/Edit Entry Modal */}
+      {(showAddModal || editingEntry) && (
+        <EntryModal
+          entry={editingEntry}
           onSave={handleSaveEntry}
-          onCancel={() => setShowAddModal(false)}
+          onCancel={() => {
+            setShowAddModal(false);
+            setEditingEntry(null);
+          }}
         />
       )}
     </div>

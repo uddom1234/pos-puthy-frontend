@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { reportsAPI, productsAPI, Product } from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 import {
   CurrencyDollarIcon,
   ShoppingBagIcon,
@@ -24,7 +24,7 @@ interface SalesSummary {
 }
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { t } = useLanguage();
   const [dailySummary, setDailySummary] = useState<SalesSummary | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<SalesSummary | null>(null);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
@@ -33,8 +33,8 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       const [dailyData, monthlyData, lowStockData] = await Promise.all([
-        reportsAPI.getSalesSummary('daily'),
-        reportsAPI.getSalesSummary('monthly'),
+        reportsAPI.getSalesSummary({ period: 'daily' }),
+        reportsAPI.getSalesSummary({ period: 'monthly' }),
         productsAPI.getLowStock(),
       ]);
 
@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 dark:border-primary-400"></div>
       </div>
     );
   }
@@ -80,10 +80,10 @@ const Dashboard: React.FC = () => {
       <div className="card p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
             {trend && (
-              <p className="text-sm text-green-600 mt-1">
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                 <ArrowTrendingUpIcon className="inline h-4 w-4 mr-1" />
                 {trend}
               </p>
@@ -100,8 +100,8 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <div className="text-sm text-gray-500">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard')}</h1>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
           {new Date().toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
       {/* Today's Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Today's Revenue"
+          title={t('total_revenue')}
           value={`$${dailySummary?.totalRevenue.toFixed(2) || '0.00'}`}
           icon={CurrencyDollarIcon}
           color="green"
@@ -126,19 +126,19 @@ const Dashboard: React.FC = () => {
           color="blue"
         />
         <StatCard
-          title="Today's Orders"
+          title={"Today's " + t('orders')}
           value={(dailySummary?.orderCount ?? 0).toString()}
           icon={ShoppingBagIcon}
           color="blue"
         />
         <StatCard
-          title="Today's Profit"
+          title={t('net_profit')}
           value={`$${dailySummary?.netProfit.toFixed(2) || '0.00'}`}
           icon={ArrowTrendingUpIcon}
           color="green"
         />
         <StatCard
-          title="Low Stock Alerts"
+          title={t('low_stock_alerts')}
           value={lowStockProducts.length.toString()}
           icon={ExclamationTriangleIcon}
           color="yellow"
@@ -170,24 +170,24 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Low Stock Alerts</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Low Stock Alerts</h3>
           {lowStockProducts.length > 0 ? (
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {lowStockProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div key={product.id} className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">{product.name}</p>
-                    <p className="text-sm text-gray-600">{product.category}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{product.category}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-red-600">{product.stock} left</p>
-                    <p className="text-xs text-gray-500">Min: {product.lowStockThreshold}</p>
+                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">{product.stock} left</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Min: {product.lowStockThreshold}</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No low stock alerts</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No low stock alerts</p>
           )}
         </div>
       </div>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { productsAPI, Product, schemasAPI, DynamicField, categoriesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { PlusIcon, PencilIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import OptionSchemaBuilder, { OptionField } from './OptionSchemaBuilder';
+import NumberInput from '../common/NumberInput';
 
 const Inventory: React.FC = () => {
   const { isAdmin, user } = useAuth();
@@ -14,24 +15,12 @@ const Inventory: React.FC = () => {
   const [productSchema, setProductSchema] = useState<DynamicField[]>([]);
   const [categories, setCategories] = useState<string[]>(['coffee', 'food']);
   const [newCategory, setNewCategory] = useState('');
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [ordersWithProduct, setOrdersWithProduct] = useState<any[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchProducts();
-    // load schema
-    (async () => {
-      if (!user?.id) return;
-      try {
-        const s = await schemasAPI.get(user.id, 'product');
-        setProductSchema(s.schema || []);
-      } catch {}
-      try {
-        const cats = await categoriesAPI.list();
-        if (Array.isArray(cats) && cats.length) setCategories(cats);
-      } catch {}
-    })();
-  }, [categoryFilter, user?.id]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const data = await productsAPI.getAll(categoryFilter === 'all' ? undefined : categoryFilter);
@@ -41,7 +30,27 @@ const Inventory: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryFilter]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  useEffect(() => {
+    // load schema
+    const loadSchema = async () => {
+      if (!user?.id) return;
+      try {
+        const s = await schemasAPI.get(user.id, 'product');
+        setProductSchema(s.schema || []);
+      } catch {}
+      try {
+        const cats = await categoriesAPI.list();
+        if (Array.isArray(cats) && cats.length) setCategories(cats);
+      } catch {}
+    };
+    loadSchema();
+  }, [user]);
 
   const ProductForm: React.FC<{
     product?: Product;
@@ -114,24 +123,24 @@ const Inventory: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {!hiddenCore.includes('price') && <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: Number(e.target.value) }))}
-                  className="input-field"
+                <NumberInput
+                  value={formData.price || null}
+                  onChange={(value) => setFormData(prev => ({ ...prev, price: value || 0 }))}
+                  placeholder="0.00"
+                  min={0}
+                  step={0.01}
+                  allowDecimals={true}
                   required
                 />
               </div>}
               {!hiddenCore.includes('stock') && <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.stock}
-                  onChange={(e) => setFormData(prev => ({ ...prev, stock: Number(e.target.value) }))}
-                  className="input-field"
+                <NumberInput
+                  value={formData.stock || null}
+                  onChange={(value) => setFormData(prev => ({ ...prev, stock: value || 0 }))}
+                  placeholder="0"
+                  min={0}
+                  allowDecimals={false}
                   required
                 />
               </div>}
@@ -139,12 +148,12 @@ const Inventory: React.FC = () => {
             
             {!hiddenCore.includes('lowStockThreshold') && <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Low Stock Threshold</label>
-              <input
-                type="number"
-                min="0"
-                value={formData.lowStockThreshold}
-                onChange={(e) => setFormData(prev => ({ ...prev, lowStockThreshold: Number(e.target.value) }))}
-                className="input-field"
+              <NumberInput
+                value={formData.lowStockThreshold || null}
+                onChange={(value) => setFormData(prev => ({ ...prev, lowStockThreshold: value || 0 }))}
+                placeholder="10"
+                min={0}
+                allowDecimals={false}
                 required
               />
             </div>}
@@ -240,6 +249,57 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error('Error saving product:', error);
       alert('Error saving product');
+    }
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    try {
+      setIsDeleting(true);
+      // First try a regular delete
+      try {
+        await productsAPI.delete(product.id);
+        fetchProducts();
+        return;
+      } catch (deleteError: any) {
+        // If it fails due to transaction items, check orders
+        if (deleteError?.response?.data?.hasTransactionItems) {
+          // Check if product is used in orders
+          const orderCheck = await productsAPI.checkOrders(product.id);
+          setProductToDelete(product);
+          setOrdersWithProduct(orderCheck.orders || []);
+          setShowDeleteModal(true);
+          setIsDeleting(false); // Reset loading state when showing modal
+          return;
+        }
+        throw deleteError;
+      }
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      if (error?.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('Error deleting product');
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleForceDeleteProduct = async () => {
+    if (!productToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      await productsAPI.delete(productToDelete.id, true); // force delete
+      fetchProducts();
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+      setOrdersWithProduct([]);
+    } catch (error) {
+      console.error('Error force deleting product:', error);
+      alert('Error deleting product');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -385,13 +445,30 @@ const Inventory: React.FC = () => {
                   )}
                   {isAdmin && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => setEditingProduct(product)}
-                        className="text-primary-600 hover:text-primary-900 flex items-center space-x-1"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                        <span>Edit</span>
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setEditingProduct(product)}
+                          className="text-primary-600 hover:text-primary-900 flex items-center space-x-1"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product)}
+                          disabled={isDeleting}
+                          className="text-red-600 hover:text-red-900 flex items-center space-x-1 disabled:opacity-50"
+                        >
+                          {isDeleting ? (
+                            <svg className="animate-spin h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <TrashIcon className="h-4 w-4" />
+                          )}
+                          <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -415,6 +492,82 @@ const Inventory: React.FC = () => {
           onSave={handleSaveProduct}
           onCancel={() => setEditingProduct(null)}
         />
+      )}
+
+      {/* Delete Product Confirmation Modal */}
+      {showDeleteModal && productToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Product</h3>
+            
+            <div className="mb-6">
+              <p className="text-red-600 font-medium mb-2">⚠️ Warning: This product cannot be deleted!</p>
+              <p className="text-gray-600 mb-4">
+                The product "<strong>{productToDelete.name}</strong>" is referenced in transaction history and/or existing orders. 
+                Deleting it will remove:
+              </p>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <ul className="text-sm text-red-700 space-y-1">
+                  <li>• All transaction history for this product</li>
+                  <li>• All sales records and analytics data</li>
+                  {ordersWithProduct.length > 0 && <li>• {ordersWithProduct.length} existing order(s)</li>}
+                  <li>• Product customization options</li>
+                </ul>
+              </div>
+              
+              {ordersWithProduct.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-medium text-yellow-800 mb-2">Orders that will be deleted:</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {ordersWithProduct.map((order) => (
+                      <div key={order.id} className="text-sm text-yellow-700 flex justify-between">
+                        <span>Order #{order.id} - Table {order.tableNumber}</span>
+                        <span>${order.total.toFixed(2)} ({order.status})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-gray-800 font-medium">
+                This action will permanently delete the product and ALL related data. 
+                Consider hiding the product instead if you want to keep historical records.
+              </p>
+              
+              <p className="text-red-600 font-medium mt-2">
+                This action cannot be undone!
+              </p>
+            </div>
+            
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setProductToDelete(null);
+                  setOrdersWithProduct([]);
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleForceDeleteProduct}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+              >
+                {isDeleting && (
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                <span>{isDeleting ? 'Deleting...' : 'Yes, Delete Everything'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

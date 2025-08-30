@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { customersAPI, Customer } from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { PlusIcon, MagnifyingGlassIcon, GiftIcon } from '@heroicons/react/24/outline';
 
 const Customers: React.FC = () => {
+  const { t } = useLanguage();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);

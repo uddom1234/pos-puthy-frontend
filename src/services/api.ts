@@ -104,6 +104,8 @@ export interface Order {
   }>;
   total: number;
   status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+  paymentStatus: 'unpaid' | 'paid' | 'partial';
+  paymentMethod?: 'cash' | 'qr';
   createdAt: string;
   tableNumber?: string;
   notes?: string;
@@ -150,6 +152,16 @@ export const productsAPI = {
   
   update: async (id: string, product: Partial<Product>) => {
     const response = await api.put(`/products/${id}`, product);
+    return response.data;
+  },
+  
+  checkOrders: async (id: string) => {
+    const response = await api.get(`/products/${id}/orders`);
+    return response.data;
+  },
+  
+  delete: async (id: string, force: boolean = false) => {
+    const response = await api.delete(`/products/${id}?force=${force}`);
     return response.data;
   },
 };
@@ -199,6 +211,21 @@ export const incomeExpenseAPI = {
     const response = await api.post('/income-expenses', entry);
     return response.data;
   },
+  
+  update: async (id: string, entry: Partial<IncomeExpense>) => {
+    const response = await api.put(`/income-expenses/${id}`, entry);
+    return response.data;
+  },
+  
+  delete: async (id: string) => {
+    const response = await api.delete(`/income-expenses/${id}`);
+    return response.data;
+  },
+  
+  bulkDelete: async (ids: string[]) => {
+    const response = await api.delete('/income-expenses/bulk', { data: { ids } });
+    return response.data;
+  },
 };
 
 // Orders API
@@ -217,8 +244,17 @@ export const ordersAPI = {
     const response = await api.put(`/orders/${id}/status`, { status });
     return response.data;
   },
+  
+  updatePayment: async (id: string, paymentStatus: Order['paymentStatus'], paymentMethod?: Order['paymentMethod'], discount?: number, cashReceived?: number) => {
+    const response = await api.put(`/orders/${id}/payment`, { paymentStatus, paymentMethod, discount, cashReceived });
+    return response.data;
+  },
   update: async (id: string, order: Partial<Order>) => {
     const response = await api.put(`/orders/${id}`, order);
+    return response.data;
+  },
+  delete: async (id: string) => {
+    const response = await api.delete(`/orders/${id}`);
     return response.data;
   },
 };
@@ -250,8 +286,13 @@ export const customersAPI = {
 
 // Reports API
 export const reportsAPI = {
-  getSalesSummary: async (period: 'daily' | 'monthly') => {
-    const response = await api.get('/reports/sales-summary', { params: { period } });
+  getSalesSummary: async (params: { 
+    period?: 'daily' | 'monthly';
+    startDate?: string;
+    endDate?: string;
+    category?: string;
+  }) => {
+    const response = await api.get('/reports/sales-summary', { params });
     return response.data;
   },
 };

@@ -13,7 +13,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loadin
   const [showCustomizationModal, setShowCustomizationModal] = useState(false);
 
   const handleProductClick = (product: Product) => {
-    if (product.category === 'coffee' || product.category === 'food') {
+    // Show customization modal if product has option schema
+    const hasCustomizations = Array.isArray((product as any).optionSchema) && (product as any).optionSchema.length > 0;
+    
+    if (hasCustomizations) {
       setSelectedProduct(product);
       setShowCustomizationModal(true);
     } else {
