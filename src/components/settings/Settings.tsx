@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { schemasAPI, DynamicField, UserSchema } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { useLanguage, languageNames, Language } from '../../contexts/LanguageContext';
 import { SunIcon, MoonIcon, GlobeAltIcon, CogIcon } from '@heroicons/react/24/outline';
 
@@ -17,6 +18,7 @@ const Settings: React.FC = () => {
   const { user } = useAuth();
   const { theme, toggleTheme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { currencyRate, setCurrencyRate, wifiInfo, setWifiInfo, phoneNumber, setPhoneNumber } = useAppSettings();
   const userId = user?.id || '';
   const [schema, setSchema] = useState<DynamicField[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,20 +112,20 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('settings')}</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t('settings')}</h1>
         <div className="text-sm text-gray-500 dark:text-gray-400">Manage system preferences</div>
       </div>
 
-      {/* Appearance Settings */}
+      {/* Appearance & General Settings */}
       <div className="card p-6 bg-white dark:bg-gray-800">
         <div className="flex items-center mb-4">
           <CogIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('appearance')}</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Dark Mode Toggle */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -177,6 +179,42 @@ const Settings: React.FC = () => {
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Choose your preferred language
             </p>
+          </div>
+
+          {/* Currency & Contact Settings */}
+          <div className="space-y-3 lg:col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Rate (USD→KHR)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={currencyRate}
+                  onChange={(e) => setCurrencyRate(Number(e.target.value) || 0)}
+                  className="input-field bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">Common values: 4100, 4150</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">WiFi Info</label>
+                <input
+                  value={wifiInfo}
+                  onChange={(e) => setWifiInfo(e.target.value)}
+                  placeholder="SSID / Password"
+                  className="input-field bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                <input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="012 345 678"
+                  className="input-field bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

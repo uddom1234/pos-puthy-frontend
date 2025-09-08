@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { productsAPI, customersAPI, transactionsAPI, ordersAPI, schemasAPI, Product, Customer, DynamicField, Order } from '../../services/api';
+import { productsAPI, customersAPI, transactionsAPI, ordersAPI, schemasAPI, categoriesAPI, Product, Customer, DynamicField, Order } from '../../services/api';
+import { readAppSettings } from '../../contexts/AppSettingsContext';
 import { printOrderReceipt } from '../../utils/printReceipt';
 import DynamicForm from '../common/DynamicForm';
 import ProductGrid from './ProductGrid';
@@ -35,7 +36,8 @@ const POS: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCustomerLookup, setShowCustomerLookup] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'coffee' | 'food'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categories, setCategories] = useState<string[]>(['coffee', 'food']);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   // Order metadata schema and values
@@ -44,6 +46,7 @@ const POS: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
     // Load order schema for current user
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
@@ -55,6 +58,15 @@ const POS: React.FC = () => {
       } catch {}
     })();
   }, [categoryFilter]);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoriesAPI.list();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -223,19 +235,19 @@ const POS: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full space-x-6">
+    <div className="flex flex-col lg:flex-row h-full space-y-4 lg:space-y-0 lg:space-x-6">
       {/* Left Panel - Products */}
       <div className="flex-1 flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">POS Terminal</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Smach Cafe POS</h1>
           
           {/* Category Filter */}
-          <div className="flex space-x-2">
-            {['all', 'coffee', 'food'].map(category => (
+          <div className="flex flex-wrap gap-2">
+            {['all', ...categories].map(category => (
               <button
                 key={category}
-                onClick={() => setCategoryFilter(category as any)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                onClick={() => setCategoryFilter(category)}
+                className={`px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
                   categoryFilter === category
                     ? 'bg-primary-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -270,7 +282,7 @@ const POS: React.FC = () => {
       </div>
 
       {/* Right Panel - Cart */}
-      <div className="w-96 flex flex-col space-y-4">
+      <div className="w-full lg:w-96 flex flex-col space-y-4">
         {/* Customer Section */}
         <div className="card p-4">
           <div className="flex items-center justify-between mb-3">
@@ -326,7 +338,9 @@ const POS: React.FC = () => {
           className="btn-primary w-full py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           <CreditCardIcon className="h-6 w-6" />
-          <span>Process Payment (${getCartTotal().toFixed(2)})</span>
+          <span>
+            Process Payment (${getCartTotal().toFixed(2)} • ៛ {(getCartTotal() * (readAppSettings().currencyRate || 4100)).toFixed(0)})
+          </span>
         </button>
       </div>
 

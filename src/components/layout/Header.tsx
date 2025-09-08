@@ -21,8 +21,8 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed, mobi
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
@@ -33,30 +33,32 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed, mobi
                   : (sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar')
               }
             >
-              <Bars3Icon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              <Bars3Icon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 dark:text-gray-300" />
             </button>
           )}
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-            {t('welcome')}, {user?.name}
-          </h2>
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
-            {user?.role.toUpperCase()}
-          </span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">
+              {t('welcome')}, {user?.name}
+            </h2>
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 self-start sm:self-auto">
+              {user?.role.toUpperCase()}
+            </span>
+          </div>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 relative transition-colors">
-            <BellIcon className="h-6 w-6" />
+            <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 dark:bg-red-500"></span>
           </button>
           
           <div className="relative">
             <button 
               onClick={() => setShowLogoutModal(true)}
-              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center space-x-1 sm:space-x-2 p-1 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <UserCircleIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{user?.username}</span>
+              <UserCircleIcon className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 dark:text-gray-500" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">{user?.username}</span>
             </button>
           </div>
         </div>

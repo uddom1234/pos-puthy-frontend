@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '../../images/logo.PNG';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -11,6 +12,7 @@ import {
   UserGroupIcon,
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -32,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { to: '/orders', icon: ShoppingCartIcon, label: t('orders') },
     { to: '/pos', icon: ClipboardDocumentListIcon, label: t('pos') },
     { to: '/inventory', icon: CubeIcon, label: t('inventory') },
+    { to: '/categories', icon: TagIcon, label: 'Categories', adminOnly: true },
     { to: '/income-expense', icon: CurrencyDollarIcon, label: t('income_expense') },
     { to: '/reports', icon: ChartBarIcon, label: t('reports'), adminOnly: true },
     { to: '/customers', icon: UserGroupIcon, label: t('customers') },
@@ -54,10 +57,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       md:relative md:translate-x-0`}>
       <div className="text-center">
         {collapsed ? (
-          <h1 className="text-lg font-bold text-white dark:text-gray-100">CP</h1>
+          <img src={logo} alt="Smach Cafe" className="mx-auto h-8 w-8 object-contain" />
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-white dark:text-gray-100">Café POS</h1>
+            <img src={logo} alt="Smach Cafe" className="mx-auto mb-2 h-12 w-12 object-contain" />
+            <h1 className="text-2xl font-bold text-white dark:text-gray-100">Smach Cafe</h1>
             <p className="text-gray-400 dark:text-gray-300 text-sm">Point of Sale System</p>
           </>
         )}

@@ -14,7 +14,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'dashboard': 'Dashboard',
     'orders': 'Orders',
-    'pos': 'POS Terminal',
+    'pos': 'Smach Cafe POS',
     'inventory': 'Inventory',
     'income_expense': 'Income & Expense',
     'reports': 'Reports',
@@ -113,7 +113,7 @@ const translations: Record<Language, Record<string, string>> = {
   km: {
     'dashboard': 'ផ្ទាំងគ្រប់គ្រង',
     'orders': 'ការបញ្ជាទិញ',
-    'pos': 'ម៉ាស៊ីនលក់',
+    'pos': 'Smach Cafe POS',
     'inventory': 'សន្លឹកស្តុក',
     'income_expense': 'ចំណូល និង ចំណាយ',
     'reports': 'របាយការណ៍',

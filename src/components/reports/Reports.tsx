@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { reportsAPI, categoriesAPI } from '../../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { DocumentArrowDownIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon } from '@heroicons/react/24/outline';
+import ExportDropdown from '../common/ExportDropdown';
+import { exportData } from '../../utils/exportHandlers';
 
 interface SalesSummary {
   period: string;
@@ -91,10 +93,10 @@ const Reports: React.FC = () => {
     fetchReports();
   }, [fetchReports]);
 
-  const handleExport = () => {
+  const handleExport = (format: string) => {
     if (!reportData) return;
 
-    const exportData = {
+    const reportExportData = {
       period: reportData.period,
       summary: {
         totalRevenue: reportData.totalRevenue,
@@ -110,15 +112,8 @@ const Reports: React.FC = () => {
       generatedAt: new Date().toISOString(),
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sales-report-${filters.period || 'custom'}-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const filename = `sales-report-${filters.period || 'custom'}-${new Date().toISOString().split('T')[0]}`;
+    exportData(format, reportExportData, filename);
   };
 
   const COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#8B5A2B'];
@@ -132,17 +127,16 @@ const Reports: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Sales Reports & Analytics</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sales Reports & Analytics</h1>
         <div className="flex items-center space-x-4">
-          <button
-            onClick={handleExport}
-            className="btn-outline flex items-center space-x-2"
-          >
-            <DocumentArrowDownIcon className="h-5 w-5" />
-            <span>Export</span>
-          </button>
+          <ExportDropdown
+            onExport={handleExport}
+            data={reportData || {}}
+            filename={`sales-report-${filters.period || 'custom'}-${new Date().toISOString().split('T')[0]}`}
+            disabled={!reportData}
+          />
         </div>
       </div>
 

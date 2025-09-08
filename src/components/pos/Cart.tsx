@@ -1,4 +1,5 @@
 import React from 'react';
+import { readAppSettings } from '../../contexts/AppSettingsContext';
 import { CartItem } from './POS';
 import { TrashIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 
@@ -13,6 +14,7 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateItem, onRemoveItem, onClear 
   const getSubtotal = () => {
     return items.reduce((total, item) => total + item.totalPrice, 0);
   };
+  const rate = readAppSettings().currencyRate || 4100;
 
   const formatCustomizations = (customizations?: any) => {
     if (!customizations) return '';
@@ -95,9 +97,8 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateItem, onRemoveItem, onClear 
               </div>
               <div className="text-right">
                 <div className="font-semibold">${item.totalPrice.toFixed(2)}</div>
-                <div className="text-xs text-gray-500">
-                  ${item.price.toFixed(2)} each
-                </div>
+                <div className="text-xs text-gray-500">៛ {(item.totalPrice * rate).toFixed(0)}</div>
+                <div className="text-xs text-gray-500">${item.price.toFixed(2)} each</div>
               </div>
             </div>
           </div>
@@ -107,7 +108,10 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateItem, onRemoveItem, onClear 
       <div className="border-t pt-4 mt-4">
         <div className="flex justify-between items-center text-lg font-semibold">
           <span>Subtotal:</span>
-          <span>${getSubtotal().toFixed(2)}</span>
+          <span className="text-right">
+            <div>${getSubtotal().toFixed(2)}</div>
+            <div className="text-sm text-gray-500">៛ {(getSubtotal() * rate).toFixed(0)}</div>
+          </span>
         </div>
       </div>
     </div>

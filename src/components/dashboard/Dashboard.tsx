@@ -98,9 +98,9 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard')}</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard')}</h1>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {new Date().toLocaleDateString('en-US', {
             weekday: 'long',
@@ -112,7 +112,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Today's Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
         <StatCard
           title={t('total_revenue')}
           value={`$${dailySummary?.totalRevenue.toFixed(2) || '0.00'}`}
@@ -146,7 +146,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Monthly Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="card p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Summary</h3>
           <div className="space-y-3">
@@ -195,11 +195,11 @@ const Dashboard: React.FC = () => {
       {/* Quick Actions */}
       <div className="card p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <a href="/pos" className="btn-primary text-center">New Order</a>
-          <a href="/inventory" className="btn-secondary text-center">Add Product</a>
-          <a href="/reports" className="btn-outline text-center">View Reports</a>
-          <button onClick={fetchDashboardData} className="btn-outline text-center">Refresh</button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <a href="/pos" className="btn-primary text-center py-3">New Order</a>
+          <a href="/inventory" className="btn-secondary text-center py-3">Add Product</a>
+          <a href="/reports" className="btn-outline text-center py-3">View Reports</a>
+          <button onClick={fetchDashboardData} className="btn-outline text-center py-3">Refresh</button>
         </div>
       </div>
     </div>

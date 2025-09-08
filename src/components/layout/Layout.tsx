@@ -41,8 +41,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           sidebarCollapsed={sidebarCollapsed}
           mobileMenuOpen={mobileMenuOpen}
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6 transition-colors duration-300">
-          {children}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-3 sm:p-4 md:p-6 transition-colors duration-300">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

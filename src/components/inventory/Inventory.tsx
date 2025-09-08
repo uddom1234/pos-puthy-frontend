@@ -11,7 +11,7 @@ const Inventory: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'coffee' | 'food'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [productSchema, setProductSchema] = useState<DynamicField[]>([]);
   const [categories, setCategories] = useState<string[]>(['coffee', 'food']);
   const [newCategory, setNewCategory] = useState('');
@@ -52,6 +52,17 @@ const Inventory: React.FC = () => {
     loadSchema();
   }, [user]);
 
+  // Sync categories with products when products change
+  useEffect(() => {
+    if (products.length > 0) {
+      const productCategories = Array.from(new Set(products.map(p => p.category)));
+      const allCategories = Array.from(new Set([...categories, ...productCategories]));
+      if (allCategories.length !== categories.length) {
+        setCategories(allCategories);
+      }
+    }
+  }, [products, categories]);
+
   const ProductForm: React.FC<{
     product?: Product;
     onSave: (product: any) => void;
@@ -89,10 +100,18 @@ const Inventory: React.FC = () => {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg w-full mx-2 sm:mx-4 max-w-3xl md:max-w-4xl">
-          <div className="p-4 sm:p-6 border-b">
+          <div className="p-4 sm:p-6 border-b flex items-center justify-between">
             <h2 className="text-xl font-semibold">
               {product ? 'Edit Product' : 'Add New Product'}
             </h2>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+              title="Close"
+            >
+              ×
+            </button>
           </div>
           
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
@@ -312,13 +331,13 @@ const Inventory: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory Management</h1>
         {isAdmin && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center space-x-2"
+            className="btn-primary flex items-center space-x-2 w-full sm:w-auto justify-center"
           >
             <PlusIcon className="h-5 w-5" />
             <span>Add Product</span>
@@ -327,30 +346,30 @@ const Inventory: React.FC = () => {
       </div>
 
       {/* Category Filter */}
-      <div className="flex space-x-2">
+      <div className="flex flex-wrap gap-2">
         {['all', ...categories].map(category => (
           <button
             key={category}
-            onClick={() => setCategoryFilter(category as any)}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            onClick={() => setCategoryFilter(category)}
+            className={`px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
               categoryFilter === category
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            {category.charAt(0).toUpperCase() + category.slice(1)}
+            {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
           </button>
         ))}
         {isAdmin && (
-          <div className="flex items-center space-x-2 ml-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
             <input
-              className="input-field"
+              className="input-field flex-1 min-w-0"
               placeholder="New category"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
             />
             <button
-              className="btn-secondary"
+              className="btn-secondary w-full sm:w-auto"
               onClick={async () => {
                 if (!newCategory.trim()) return;
                 try {

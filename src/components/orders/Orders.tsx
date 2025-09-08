@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ordersAPI, Order, schemasAPI, DynamicField } from '../../services/api';
 import { ClockIcon, CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { printOrderReceipt } from '../../utils/printReceipt';
+import { readAppSettings } from '../../contexts/AppSettingsContext';
 import PaymentProcessingModal from '../pos/PaymentProcessingModal';
 import EditOrderModal from './EditOrderModal';
 
@@ -161,9 +162,9 @@ const Orders: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Orders</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Orders</h1>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length} active orders
         </div>
@@ -174,11 +175,11 @@ const Orders: React.FC = () => {
           <p className="text-gray-500 dark:text-gray-400 text-lg">No orders found</p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {orders.map((order) => (
-            <div key={order.id} className="card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
+            <div key={order.id} className="card p-4 sm:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-4 lg:space-y-0">
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold">Order #{order.id.slice(-8)}</h3>
                   <p className="text-gray-600">
                     {new Date(order.createdAt).toLocaleString()}
@@ -187,8 +188,8 @@ const Orders: React.FC = () => {
                     <p className="text-sm text-gray-500">Table: {order.tableNumber}</p>
                   )}
                 </div>
-                <div className="text-right">
-                  <div className="flex flex-col space-y-1 items-end">
+                <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end xl:items-center space-y-2 sm:space-y-0 sm:space-x-4 lg:space-x-0 lg:space-y-2 xl:space-x-4 xl:space-y-0">
+                  <div className="flex flex-col space-y-1">
                     <div className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
                       {getStatusIcon(order.status)}
                       <span>{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
@@ -198,10 +199,11 @@ const Orders: React.FC = () => {
                       {order.paymentMethod && ` (${order.paymentMethod.toUpperCase()})`}
                     </div>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    ${order.total.toFixed(2)}
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100 text-right">
+                    <div>${order.total.toFixed(2)}</div>
+                    <div className="text-sm text-gray-500">៛ {(order.total * (readAppSettings().currencyRate || 4100)).toFixed(0)}</div>
                   </div>
-                  <div className="flex space-x-2 mt-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => printOrderReceipt(order)}
                       className="btn-outline text-sm"
@@ -230,7 +232,10 @@ const Orders: React.FC = () => {
                 {order.items.map((item, index) => (
                   <div key={index} className="flex justify-between items-center text-sm">
                     <span>{item.quantity}x {item.productName}</span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span className="text-right">
+                      <div>${(item.price * item.quantity).toFixed(2)}</div>
+                      <div className="text-xs text-gray-500">៛ {((item.price * item.quantity) * (readAppSettings().currencyRate || 4100)).toFixed(0)}</div>
+                    </span>
                   </div>
                 ))}
               </div>
