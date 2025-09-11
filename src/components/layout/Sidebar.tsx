@@ -12,7 +12,6 @@ import {
   UserGroupIcon,
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
-  TagIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -34,7 +33,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { to: '/orders', icon: ShoppingCartIcon, label: t('orders') },
     { to: '/pos', icon: ClipboardDocumentListIcon, label: t('pos') },
     { to: '/inventory', icon: CubeIcon, label: t('inventory') },
-    { to: '/categories', icon: TagIcon, label: 'Categories', adminOnly: true },
     { to: '/income-expense', icon: CurrencyDollarIcon, label: t('income_expense') },
     { to: '/reports', icon: ChartBarIcon, label: t('reports'), adminOnly: true },
     { to: '/customers', icon: UserGroupIcon, label: t('customers') },

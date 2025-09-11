@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { incomeExpenseAPI, IncomeExpense } from '../../services/api';
-import { PlusIcon, FunnelIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { incomeExpenseAPI, IncomeExpense, incomeCategoriesAPI, IncomeCategory, expenseCategoriesAPI, ExpenseCategory } from '../../services/api';
+import { PlusIcon, FunnelIcon, PencilIcon, TrashIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import NumberInput from '../common/NumberInput';
+import UnifiedCategoryManagementModal from './UnifiedCategoryManagementModal';
 
 const IncomeExpensePage: React.FC = () => {
   const [entries, setEntries] = useState<IncomeExpense[]>([]);
@@ -10,6 +11,9 @@ const IncomeExpensePage: React.FC = () => {
   const [editingEntry, setEditingEntry] = useState<IncomeExpense | null>(null);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -34,9 +38,23 @@ const IncomeExpensePage: React.FC = () => {
     }
   }, [filters.startDate, filters.endDate, filters.type, filters.category]);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const [incomeData, expenseData] = await Promise.all([
+        incomeCategoriesAPI.getAll(),
+        expenseCategoriesAPI.getAll()
+      ]);
+      setIncomeCategories(incomeData);
+      setExpenseCategories(expenseData);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchEntries(true); // Initial load with loading state
-  }, [fetchEntries]);
+    fetchCategories(); // Load categories
+  }, [fetchEntries, fetchCategories]);
 
   const handleSaveEntry = async (entryData: any) => {
     try {
@@ -118,13 +136,27 @@ const IncomeExpensePage: React.FC = () => {
     });
 
     const categories = {
-      income: ['Sales', 'Catering', 'Tips', 'Other Income'],
-      expense: ['Inventory', 'Rent', 'Utilities', 'Salaries', 'Marketing', 'Equipment', 'Other Expense'],
+      income: incomeCategories.filter(cat => cat.isActive).map(cat => cat.name),
+      expense: expenseCategories.filter(cat => cat.isActive).map(cat => cat.name),
     };
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      onSave(formData);
+      
+      // Find the category ID based on type
+      let categoryId = undefined;
+      if (formData.type === 'income') {
+        const selectedCategory = incomeCategories.find(cat => cat.name === formData.category);
+        categoryId = selectedCategory?.id;
+      } else if (formData.type === 'expense') {
+        const selectedCategory = expenseCategories.find(cat => cat.name === formData.category);
+        categoryId = selectedCategory?.id;
+      }
+      
+      onSave({
+        ...formData,
+        categoryId
+      });
     };
 
     return (
@@ -245,6 +277,13 @@ const IncomeExpensePage: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900">Income & Expense Tracking</h1>
         <div className="flex space-x-3">
           <button onClick={() => fetchEntries(false)} className="btn-outline">Refresh</button>
+          <button
+            onClick={() => setShowCategoryModal(true)}
+            className="btn-outline flex items-center space-x-2"
+          >
+            <Cog6ToothIcon className="h-5 w-5" />
+            <span>Manage Categories</span>
+          </button>
           <button
             onClick={() => setShowAddModal(true)}
             className="btn-primary flex items-center space-x-2"
@@ -456,6 +495,14 @@ const IncomeExpensePage: React.FC = () => {
           }}
         />
       )}
+
+      {/* Category Management Modal */}
+      <UnifiedCategoryManagementModal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        onIncomeCategoriesChange={setIncomeCategories}
+        onExpenseCategoriesChange={setExpenseCategories}
+      />
     </div>
   );
 };

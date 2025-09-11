@@ -17,9 +17,8 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [formData, setFormData] = useState({
     tableNumber: order.tableNumber || '',
     notes: order.notes || '',
-    status: order.status,
-    paymentStatus: order.paymentStatus,
-    paymentMethod: order.paymentMethod as Order['paymentMethod'] | '',
+    paymentStatus: order.paymentStatus || 'unpaid',
+    paymentMethod: order.paymentMethod || '',
     total: order.total,
     items: order.items,
     metadata: order.metadata || {}
@@ -29,7 +28,7 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
     e.preventDefault();
     const sanitizedData = {
       ...formData,
-      paymentMethod: formData.paymentMethod === '' ? undefined : formData.paymentMethod as Order['paymentMethod']
+      paymentMethod: formData.paymentMethod === '' ? undefined : formData.paymentMethod as 'cash' | 'qr'
     };
     onSave(sanitizedData);
   };
@@ -93,30 +92,14 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Order Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Order['status'] }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-              >
-                <option value="pending">Pending</option>
-                <option value="preparing">Preparing</option>
-                <option value="ready">Ready</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
               <select
                 value={formData.paymentStatus}
-                onChange={(e) => setFormData(prev => ({ ...prev, paymentStatus: e.target.value as Order['paymentStatus'] }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, paymentStatus: e.target.value as 'unpaid' | 'paid' }))}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               >
                 <option value="unpaid">Unpaid</option>
                 <option value="paid">Paid</option>
-                <option value="partial">Partial</option>
               </select>
             </div>
             
@@ -127,7 +110,7 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   value={formData.paymentMethod || ''}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
-                    paymentMethod: e.target.value === '' ? '' : e.target.value as Order['paymentMethod']
+                    paymentMethod: e.target.value === '' ? '' : e.target.value as 'cash' | 'qr'
                   }))}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 >

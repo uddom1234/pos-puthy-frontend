@@ -50,6 +50,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authAPI.login(username, password);
       const { token, user: userData } = response;
       
+      // Clear previous cart data when logging in
+      localStorage.removeItem('pos_cart_items');
+      localStorage.removeItem('pos_selected_customer');
+      
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
@@ -61,6 +65,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+    // Clear cart data when user logs out
+    localStorage.removeItem('pos_cart_items');
+    localStorage.removeItem('pos_selected_customer');
     setUser(null);
   };
 

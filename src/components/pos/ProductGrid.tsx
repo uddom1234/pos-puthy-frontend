@@ -57,37 +57,47 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loadin
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
         {products.map((product) => (
           <div
             key={product.id}
             onClick={() => handleProductClick(product)}
-            className="card p-4 cursor-pointer hover:shadow-lg transition-shadow duration-200"
+            className="card p-4 cursor-pointer transition transform duration-200 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
           >
-            {/* Product Image Placeholder */}
-            <div className="h-32 bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg mb-3 flex items-center justify-center">
-              <span className="text-2xl">
-                {product.category === 'coffee' ? '☕' : '🍽️'}
-              </span>
-            </div>
+            {/* Product Image / Placeholder */}
+            {product.imageUrl ? (
+              <div className="h-28 sm:h-32 rounded-lg mb-3 overflow-hidden bg-gray-100">
+                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="h-28 sm:h-32 bg-gradient-to-br from-primary-50 to-primary-200 rounded-lg mb-3 flex items-center justify-center">
+                <span className="text-2xl sm:text-3xl">
+                  {product.category === 'coffee' ? '☕' : '🍽️'}
+                </span>
+              </div>
+            )}
             
-            <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
-            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
+            <h3 className="font-semibold text-gray-900 mb-0.5 truncate" title={product.name}>{product.name}</h3>
+            <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2 min-h-[1.5rem]">
+              {product.description}
+            </p>
             
             <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-primary-600">
+              <span className="text-base sm:text-lg font-bold text-primary-600">
                 ${product.price.toFixed(2)}
               </span>
               <div className="flex items-center space-x-2">
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  product.stock > product.lowStockThreshold
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {product.stock} left
-                </span>
+                {product.hasStock && (
+                  <span className={`text-[10px] sm:text-xs px-2 py-1 rounded-full whitespace-nowrap ${
+                    product.stock > product.lowStockThreshold
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {product.stock} left
+                  </span>
+                )}
                 {(product.category === 'coffee' || product.category === 'food') && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                  <span className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
                     Customizable
                   </span>
                 )}

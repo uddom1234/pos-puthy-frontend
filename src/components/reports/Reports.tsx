@@ -318,44 +318,127 @@ const Reports: React.FC = () => {
         </div>
       )}
 
-      {/* Category Performance Table */}
-      {reportData && reportData.categoryBreakdown.length > 0 && (
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Category Performance</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items Sold</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unique Products</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Revenue per Item</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {reportData.categoryBreakdown.map((category, index) => (
-                  <tr key={category.category}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {category.category}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {category.quantity}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${category.revenue.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {category.uniqueProducts}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${category.quantity > 0 ? (category.revenue / category.quantity).toFixed(2) : '0.00'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Excel-like Data Tables */}
+      {reportData && (
+        <div className="space-y-6">
+          {/* Category Performance Table */}
+          {reportData.categoryBreakdown.length > 0 && (
+            <div className="card p-0 overflow-hidden">
+              <div className="bg-gray-800 text-white px-6 py-4">
+                <h3 className="text-lg font-semibold">Category Performance Report</h3>
+                <p className="text-sm text-gray-300">Sales breakdown by product category</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-100 border-b-2 border-gray-300">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-bold text-gray-700 border-r border-gray-300">#</th>
+                      <th className="px-4 py-3 text-left text-sm font-bold text-gray-700 border-r border-gray-300">Category</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700 border-r border-gray-300">Items Sold</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700 border-r border-gray-300">Revenue</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700 border-r border-gray-300">Unique Products</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700">Avg Revenue/Item</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white">
+                    {reportData.categoryBreakdown.map((category, index) => (
+                      <tr key={category.category} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                        <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-200 font-mono">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 border-r border-gray-200">
+                          {category.category}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right border-r border-gray-200 font-mono">
+                          {category.quantity.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right border-r border-gray-200 font-mono">
+                          ${category.revenue.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right border-r border-gray-200 font-mono">
+                          {category.uniqueProducts}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right font-mono">
+                          ${category.quantity > 0 ? (category.revenue / category.quantity).toFixed(2) : '0.00'}
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Total Row */}
+                    <tr className="bg-gray-200 border-t-2 border-gray-400 font-bold">
+                      <td className="px-4 py-3 text-sm text-gray-800 border-r border-gray-300">TOTAL</td>
+                      <td className="px-4 py-3 text-sm text-gray-800 border-r border-gray-300">All Categories</td>
+                      <td className="px-4 py-3 text-sm text-gray-800 text-right border-r border-gray-300 font-mono">
+                        {reportData.categoryBreakdown.reduce((sum, cat) => sum + cat.quantity, 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-800 text-right border-r border-gray-300 font-mono">
+                        ${reportData.categoryBreakdown.reduce((sum, cat) => sum + cat.revenue, 0).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-800 text-right border-r border-gray-300 font-mono">
+                        {reportData.categoryBreakdown.reduce((sum, cat) => sum + cat.uniqueProducts, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-800 text-right font-mono">
+                        ${reportData.categoryBreakdown.reduce((sum, cat) => sum + cat.quantity, 0) > 0 ? 
+                          (reportData.categoryBreakdown.reduce((sum, cat) => sum + cat.revenue, 0) / 
+                           reportData.categoryBreakdown.reduce((sum, cat) => sum + cat.quantity, 0)).toFixed(2) : '0.00'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Top Selling Items Table */}
+          {reportData.itemsSold.length > 0 && (
+            <div className="card p-0 overflow-hidden">
+              <div className="bg-gray-800 text-white px-6 py-4">
+                <h3 className="text-lg font-semibold">Top Selling Items Report</h3>
+                <p className="text-sm text-gray-300">Best performing products by revenue and quantity</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-100 border-b-2 border-gray-300">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-bold text-gray-700 border-r border-gray-300">#</th>
+                      <th className="px-4 py-3 text-left text-sm font-bold text-gray-700 border-r border-gray-300">Product Name</th>
+                      <th className="px-4 py-3 text-left text-sm font-bold text-gray-700 border-r border-gray-300">Category</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700 border-r border-gray-300">Quantity Sold</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700 border-r border-gray-300">Revenue</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700 border-r border-gray-300">Avg Price</th>
+                      <th className="px-4 py-3 text-right text-sm font-bold text-gray-700">Orders</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white">
+                    {reportData.itemsSold.slice(0, 20).map((item, index) => (
+                      <tr key={item.productId || index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                        <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-200 font-mono">
+                          {index + 1}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 border-r border-gray-200">
+                          {item.productName}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-200">
+                          {item.category}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right border-r border-gray-200 font-mono">
+                          {item.quantity.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right border-r border-gray-200 font-mono">
+                          ${item.revenue.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right border-r border-gray-200 font-mono">
+                          ${item.avgPrice.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 text-right font-mono">
+                          {item.orderCount}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

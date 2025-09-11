@@ -15,7 +15,6 @@ const Inventory = React.lazy(() => import('./components/inventory/Inventory'));
 const IncomeExpense = React.lazy(() => import('./components/income-expense/IncomeExpense'));
 const Reports = React.lazy(() => import('./components/reports/Reports'));
 const Customers = React.lazy(() => import('./components/customers/Customers'));
-const Categories = React.lazy(() => import('./components/categories/Categories'));
 const Settings = React.lazy(() => import('./components/settings/Settings'));
 
 function App() {
@@ -108,18 +107,6 @@ function App() {
                   <Layout>
                     <React.Suspense fallback={<div>Loading...</div>}>
                       <Customers />
-                    </React.Suspense>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/categories"
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <Layout>
-                    <React.Suspense fallback={<div>Loading...</div>}>
-                      <Categories />
                     </React.Suspense>
                   </Layout>
                 </ProtectedRoute>

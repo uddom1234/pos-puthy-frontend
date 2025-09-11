@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
 import { productsAPI, Product, schemasAPI, DynamicField, categoriesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { PlusIcon, PencilIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, ExclamationTriangleIcon, TrashIcon, TagIcon } from '@heroicons/react/24/outline';
 import OptionSchemaBuilder, { OptionField } from './OptionSchemaBuilder';
 import NumberInput from '../common/NumberInput';
+import ImageUploader from '../common/ImageUploader';
+import CategoriesModal from './CategoriesModal';
 
 const Inventory: React.FC = () => {
   const { isAdmin, user } = useAuth();
@@ -14,11 +18,20 @@ const Inventory: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [productSchema, setProductSchema] = useState<DynamicField[]>([]);
   const [categories, setCategories] = useState<string[]>(['coffee', 'food']);
-  const [newCategory, setNewCategory] = useState('');
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [ordersWithProduct, setOrdersWithProduct] = useState<any[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+
+  const refreshCategories = useCallback(async () => {
+    try {
+      const cats = await categoriesAPI.list();
+      if (Array.isArray(cats) && cats.length) setCategories(cats);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -63,25 +76,54 @@ const Inventory: React.FC = () => {
     }
   }, [products, categories]);
 
+  // Validation schema
+  const validationSchema = Yup.object({
+    name: Yup.string()
+      .min(2, 'Product name must be at least 2 characters')
+      .max(100, 'Product name must be less than 100 characters')
+      .required('Product name is required'),
+    category: Yup.string()
+      .required('Category is required'),
+    price: Yup.number()
+      .min(0, 'Price must be 0 or greater')
+      .required('Price is required'),
+    stock: Yup.number()
+      .min(0, 'Stock must be 0 or greater')
+      .when('hasStock', {
+        is: true,
+        then: (schema) => schema.required('Stock is required when stock management is enabled'),
+        otherwise: (schema) => schema.notRequired()
+      }),
+    hasStock: Yup.boolean(),
+    lowStockThreshold: Yup.number()
+      .min(0, 'Low stock threshold must be 0 or greater')
+      .when('hasStock', {
+        is: true,
+        then: (schema) => schema.required('Low stock threshold is required when stock management is enabled'),
+        otherwise: (schema) => schema.notRequired()
+      }),
+    description: Yup.string()
+      .max(500, 'Description must be less than 500 characters'),
+    metadata: Yup.object(),
+    optionSchema: Yup.array()
+  });
+
   const ProductForm: React.FC<{
     product?: Product;
     onSave: (product: any) => void;
     onCancel: () => void;
   }> = ({ product, onSave, onCancel }) => {
-    const [formData, setFormData] = useState({
+    const initialValues = {
       name: product?.name || '',
       category: product?.category || 'coffee',
       price: product?.price || 0,
       stock: product?.stock || 0,
+      hasStock: product?.hasStock !== undefined ? product.hasStock : true,
       lowStockThreshold: product?.lowStockThreshold || 10,
       description: product?.description || '',
+      imageUrl: (product as any)?.imageUrl || '',
       metadata: (product as any)?.metadata || {},
       optionSchema: ((product as any)?.optionSchema || []) as OptionField[],
-    });
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      onSave(formData);
     };
 
     // Load hidden core fields from schemasAPI (saved under productCore)
@@ -98,158 +140,315 @@ const Inventory: React.FC = () => {
     }, [user?.id]);
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg w-full mx-2 sm:mx-4 max-w-3xl md:max-w-4xl">
-          <div className="p-4 sm:p-6 border-b flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
-              {product ? 'Edit Product' : 'Add New Product'}
-            </h2>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
-              title="Close"
-            >
-              ×
-            </button>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {product ? 'Edit Product' : 'Add New Product'}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {product ? 'Update product details and settings' : 'Create a new product for your inventory'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
           
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-            {!hiddenCore.includes('name') && <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="input-field"
-                required
-              />
-            </div>}
-            
-            {!hiddenCore.includes('category') && <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
-                className="input-field"
-              >
-                {categories.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>}
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {!hiddenCore.includes('price') && <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-                <NumberInput
-                  value={formData.price || null}
-                  onChange={(value) => setFormData(prev => ({ ...prev, price: value || 0 }))}
-                  placeholder="0.00"
-                  min={0}
-                  step={0.01}
-                  allowDecimals={true}
-                  required
-                />
-              </div>}
-              {!hiddenCore.includes('stock') && <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
-                <NumberInput
-                  value={formData.stock || null}
-                  onChange={(value) => setFormData(prev => ({ ...prev, stock: value || 0 }))}
-                  placeholder="0"
-                  min={0}
-                  allowDecimals={false}
-                  required
-                />
-              </div>}
-            </div>
-            
-            {!hiddenCore.includes('lowStockThreshold') && <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Low Stock Threshold</label>
-              <NumberInput
-                value={formData.lowStockThreshold || null}
-                onChange={(value) => setFormData(prev => ({ ...prev, lowStockThreshold: value || 0 }))}
-                placeholder="10"
-                min={0}
-                allowDecimals={false}
-                required
-              />
-            </div>}
-            
-            {!hiddenCore.includes('description') && <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="input-field"
-                rows={4}
-              />
-            </div>}
-            
-            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-3 sm:space-y-0 pt-4">
-              <button type="button" onClick={onCancel} className="flex-1 btn-outline">
-                Cancel
-              </button>
-              <button type="submit" className="flex-1 btn-primary">
-                {product ? 'Update' : 'Add'} Product
-              </button>
-            </div>
-          {/* Dynamic fields */}
-          {productSchema.length > 0 && (
-            <div className="p-6 pt-0 space-y-4">
-              <h3 className="text-md font-semibold">Custom Fields</h3>
-              {productSchema.map((f) => (
-                <div key={f.key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
-                  {f.type === 'text' || f.type === 'number' ? (
-                    <input
-                      type={f.type}
-                      className="input-field"
-                      value={formData.metadata?.[f.key] ?? ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, metadata: { ...(prev.metadata||{}), [f.key]: f.type==='number'? Number(e.target.value): e.target.value } }))}
+          {/* Formik Form */}
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={(values, { setSubmitting }) => {
+              onSave(values);
+              setSubmitting(false);
+            }}
+          >
+            {({ values, errors, touched, setFieldValue, isSubmitting }) => (
+              <Form id="product-form" className="flex-1 overflow-y-auto">
+                <div className="p-6 space-y-6">
+              {/* Basic Information Section */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Basic Information
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {!hiddenCore.includes('name') && <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
+                    <Field
+                      type="text"
+                      name="name"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        errors.name && touched.name ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter product name"
                     />
-                  ) : f.type === 'date' ? (
-                    <input
-                      type="date"
-                      className="input-field"
-                      value={formData.metadata?.[f.key] ?? ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, metadata: { ...(prev.metadata||{}), [f.key]: e.target.value } }))}
-                    />
-                  ) : f.type === 'select' ? (
-                    <select
-                      className="input-field"
-                      value={formData.metadata?.[f.key] ?? ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, metadata: { ...(prev.metadata||{}), [f.key]: e.target.value } }))}
+                    <ErrorMessage name="name" component="div" className="text-red-500 text-sm mt-1" />
+                  </div>}
+                  
+                  {!hiddenCore.includes('category') && <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <Field
+                      as="select"
+                      name="category"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        errors.category && touched.category ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     >
-                      <option value="">Select...</option>
-                      {(f.options||[]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={!!formData.metadata?.[f.key]}
-                        onChange={(e) => setFormData(prev => ({ ...prev, metadata: { ...(prev.metadata||{}), [f.key]: e.target.checked } }))}
+                      {categories.map(c => (
+                        <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                      ))}
+                    </Field>
+                    <ErrorMessage name="category" component="div" className="text-red-500 text-sm mt-1" />
+                  </div>}
+                </div>
+              </div>
+            
+              {/* Pricing Section */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                  Pricing
+                </h3>
+                
+                {!hiddenCore.includes('price') && <div className="max-w-xs">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
+                  <Field name="price">
+                    {({ field, meta }: { field: any; meta: any }) => (
+                      <NumberInput
+                        value={field.value || null}
+                        onChange={(value) => setFieldValue('price', value || 0)}
+                        placeholder="0.00"
+                        min={0}
+                        step={0.01}
+                        allowDecimals={true}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                          meta.error && meta.touched ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
-                      <span className="text-sm text-gray-700">{f.label}</span>
+                    )}
+                  </Field>
+                  <ErrorMessage name="price" component="div" className="text-red-500 text-sm mt-1" />
+                </div>}
+              </div>
+
+              {/* Stock Management Section */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  Stock Management
+                </h3>
+                
+                {/* Stock Management Toggle */}
+                <div className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg">
+                  <Field
+                    type="checkbox"
+                    name="hasStock"
+                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="hasStock" className="text-sm font-medium text-gray-700 cursor-pointer">
+                      Enable Stock Management
+                    </label>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {values.hasStock ? 'Stock will be tracked and deducted on sales' : 'Made-to-order item (no stock tracking)'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Stock Input - Only show when hasStock is enabled */}
+                {values.hasStock && !hiddenCore.includes('stock') && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Current Stock *</label>
+                      <Field name="stock">
+                        {({ field, meta }: { field: any; meta: any }) => (
+                          <NumberInput
+                            value={field.value || null}
+                            onChange={(value) => setFieldValue('stock', value || 0)}
+                            placeholder="0"
+                            min={0}
+                            allowDecimals={false}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                              meta.error && meta.touched ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                        )}
+                      </Field>
+                      <ErrorMessage name="stock" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Low Stock Threshold *</label>
+                      <Field name="lowStockThreshold">
+                        {({ field, meta }: { field: any; meta: any }) => (
+                          <NumberInput
+                            value={field.value || null}
+                            onChange={(value) => setFieldValue('lowStockThreshold', value || 0)}
+                            placeholder="10"
+                            min={0}
+                            allowDecimals={false}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                              meta.error && meta.touched ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          />
+                        )}
+                      </Field>
+                      <ErrorMessage name="lowStockThreshold" component="div" className="text-red-500 text-sm mt-1" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            
+              {/* Description Section */}
+              {!hiddenCore.includes('description') && (
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Description
+                  </h3>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Description</label>
+                    <Field
+                      as="textarea"
+                      name="description"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${
+                        errors.description && touched.description ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      rows={4}
+                      placeholder="Enter product description (optional)"
+                    />
+                    <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
+                  </div>
+                </div>
+              )}
+
+              {/* Image Section */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4-4a2 2 0 013 0l4 4m1-1l1-1m-4-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Product Image
+                </h3>
+                <ImageUploader
+                  value={(values as any).imageUrl}
+                  onChange={(url) => setFieldValue('imageUrl', url || '')}
+                />
+              </div>
+
+                  {/* Dynamic fields */}
+                  {productSchema.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Custom Fields
+                      </h3>
+                      <div className="space-y-4">
+                        {productSchema.map((f) => (
+                          <div key={f.key}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{f.label}</label>
+                            {f.type === 'text' || f.type === 'number' ? (
+                              <input
+                                type={f.type}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                value={values.metadata?.[f.key] ?? ''}
+                                onChange={(e) => setFieldValue('metadata', { ...(values.metadata||{}), [f.key]: f.type==='number'? Number(e.target.value): e.target.value })}
+                              />
+                            ) : f.type === 'date' ? (
+                              <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                value={values.metadata?.[f.key] ?? ''}
+                                onChange={(e) => setFieldValue('metadata', { ...(values.metadata||{}), [f.key]: e.target.value })}
+                              />
+                            ) : f.type === 'select' ? (
+                              <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                value={values.metadata?.[f.key] ?? ''}
+                                onChange={(e) => setFieldValue('metadata', { ...(values.metadata||{}), [f.key]: e.target.value })}
+                              >
+                                <option value="">Select...</option>
+                                {(f.options||[]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                              </select>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                  checked={!!values.metadata?.[f.key]}
+                                  onChange={(e) => setFieldValue('metadata', { ...(values.metadata||{}), [f.key]: e.target.checked })}
+                                />
+                                <span className="text-sm text-gray-700">{f.label}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
+
+                  {/* Option schema builder */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Product Options
+                    </h3>
+                    <OptionSchemaBuilder
+                      value={values.optionSchema}
+                      onChange={(next) => setFieldValue('optionSchema', next)}
+                    />
+                  </div>
                 </div>
-              ))}
+              </Form>
+            )}
+          </Formik>
+          
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+            <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-3 sm:space-y-0">
+              <button 
+                type="button" 
+                onClick={onCancel} 
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                form="product-form"
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
+              >
+                {product ? 'Update Product' : 'Add Product'}
+              </button>
             </div>
-          )}
-
-          {/* Option schema builder */}
-          <div className="p-4 sm:p-6 pt-0 space-y-4">
-            <OptionSchemaBuilder
-              value={formData.optionSchema}
-              onChange={(next) => setFormData(prev => ({ ...prev, optionSchema: next }))}
-            />
           </div>
-
-          </form>
         </div>
       </div>
     );
@@ -334,15 +533,29 @@ const Inventory: React.FC = () => {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory Management</h1>
-        {isAdmin && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center space-x-2 w-full sm:w-auto justify-center"
-          >
-            <PlusIcon className="h-5 w-5" />
-            <span>Add Product</span>
-          </button>
-        )}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          {isAdmin && (
+            <button
+              onClick={() => {
+                refreshCategories();
+                setShowCategoriesModal(true);
+              }}
+              className="btn-outline flex items-center space-x-2 w-full sm:w-auto justify-center"
+            >
+              <TagIcon className="h-5 w-5" />
+              <span>Manage Categories</span>
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn-primary flex items-center space-x-2 w-full sm:w-auto justify-center"
+            >
+              <PlusIcon className="h-5 w-5" />
+              <span>Add Product</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Category Filter */}
@@ -360,29 +573,6 @@ const Inventory: React.FC = () => {
             {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
           </button>
         ))}
-        {isAdmin && (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-            <input
-              className="input-field flex-1 min-w-0"
-              placeholder="New category"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-            />
-            <button
-              className="btn-secondary w-full sm:w-auto"
-              onClick={async () => {
-                if (!newCategory.trim()) return;
-                try {
-                  const updated = await categoriesAPI.add(newCategory.trim());
-                  setCategories(updated);
-                  setNewCategory('');
-                } catch {}
-              }}
-            >
-              Add
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Products Table */}
@@ -436,17 +626,23 @@ const Inventory: React.FC = () => {
                     ${product.price.toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.stock}
+                    {product.hasStock ? product.stock : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {product.stock <= product.lowStockThreshold ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
-                        Low Stock
-                      </span>
+                    {product.hasStock ? (
+                      product.stock <= product.lowStockThreshold ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                          Low Stock
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          In Stock
+                        </span>
+                      )
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        In Stock
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Made-to-Order
                       </span>
                     )}
                   </td>
@@ -542,7 +738,7 @@ const Inventory: React.FC = () => {
                     {ordersWithProduct.map((order) => (
                       <div key={order.id} className="text-sm text-yellow-700 flex justify-between">
                         <span>Order #{order.id} - Table {order.tableNumber}</span>
-                        <span>${order.total.toFixed(2)} ({order.status})</span>
+                        <span>${order.total.toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
@@ -588,6 +784,14 @@ const Inventory: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Categories Modal */}
+      <CategoriesModal
+        isOpen={showCategoriesModal}
+        onClose={() => setShowCategoriesModal(false)}
+        categories={categories}
+        onCategoriesChange={setCategories}
+      />
     </div>
   );
 };

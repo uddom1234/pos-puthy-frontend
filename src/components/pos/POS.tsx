@@ -44,9 +44,60 @@ const POS: React.FC = () => {
   const [orderSchema, setOrderSchema] = useState<DynamicField[]>([]);
   const [orderMetadata, setOrderMetadata] = useState<Record<string, any>>({});
 
+  // Cart persistence functions
+  const CART_STORAGE_KEY = 'pos_cart_items';
+  const CUSTOMER_STORAGE_KEY = 'pos_selected_customer';
+
+  const saveCartToStorage = (items: CartItem[]) => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
+  };
+
+  const loadCartFromStorage = (): CartItem[] => {
+    try {
+      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (error) {
+      console.error('Error loading cart from localStorage:', error);
+      return [];
+    }
+  };
+
+  const saveCustomerToStorage = (customer: Customer | null) => {
+    try {
+      if (customer) {
+        localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(customer));
+      } else {
+        localStorage.removeItem(CUSTOMER_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Error saving customer to localStorage:', error);
+    }
+  };
+
+  const loadCustomerFromStorage = (): Customer | null => {
+    try {
+      const savedCustomer = localStorage.getItem(CUSTOMER_STORAGE_KEY);
+      return savedCustomer ? JSON.parse(savedCustomer) : null;
+    } catch (error) {
+      console.error('Error loading customer from localStorage:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    
+    // Load saved cart and customer data
+    const savedCart = loadCartFromStorage();
+    const savedCustomer = loadCustomerFromStorage();
+    setCartItems(savedCart);
+    setSelectedCustomer(savedCustomer);
+    
     // Load order schema for current user
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
@@ -118,30 +169,48 @@ const POS: React.FC = () => {
       totalPrice,
     };
 
-    setCartItems(prev => [...prev, cartItem]);
+    setCartItems(prev => {
+      const newCart = [...prev, cartItem];
+      saveCartToStorage(newCart);
+      return newCart;
+    });
   };
 
   const updateCartItem = (itemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setCartItems(prev => prev.filter(item => item.id !== itemId));
-    } else {
-      setCartItems(prev =>
-        prev.map(item =>
+    setCartItems(prev => {
+      let newCart;
+      if (quantity <= 0) {
+        newCart = prev.filter(item => item.id !== itemId);
+      } else {
+        newCart = prev.map(item =>
           item.id === itemId
             ? { ...item, quantity, totalPrice: item.price * quantity }
             : item
-        )
-      );
-    }
+        );
+      }
+      saveCartToStorage(newCart);
+      return newCart;
+    });
   };
 
   const removeFromCart = (itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
+    setCartItems(prev => {
+      const newCart = prev.filter(item => item.id !== itemId);
+      saveCartToStorage(newCart);
+      return newCart;
+    });
   };
 
   const clearCart = () => {
     setCartItems([]);
     setSelectedCustomer(null);
+    saveCartToStorage([]);
+    saveCustomerToStorage(null);
+  };
+
+  const handleCustomerSelect = (customer: Customer | null) => {
+    setSelectedCustomer(customer);
+    saveCustomerToStorage(customer);
   };
 
   const getCartTotal = () => {
@@ -159,9 +228,9 @@ const POS: React.FC = () => {
       const subtotal = getCartTotal();
       const total = subtotal - paymentData.discount - (paymentData.loyaltyPointsUsed || 0);
 
-      const statusValue: 'paid' | 'unpaid' = paymentData.paymentMethod === 'cash'
-        ? 'paid'
-        : (paymentData.status === 'paid' ? 'paid' : 'unpaid');
+      const statusValue: 'paid' | 'unpaid' = paymentData.status
+        ? paymentData.status
+        : (paymentData.paymentMethod === 'cash' ? 'paid' : 'unpaid');
 
       // Resolve customer from selection only
       let customerIdToUse: string | undefined = selectedCustomer?.id;
@@ -302,7 +371,7 @@ const POS: React.FC = () => {
                 <p className="text-sm text-green-700">Points: {selectedCustomer.loyaltyPoints}</p>
               </div>
               <button
-                onClick={() => setSelectedCustomer(null)}
+                onClick={() => handleCustomerSelect(null)}
                 className="text-red-600 hover:text-red-800 text-sm"
               >
                 Remove
@@ -359,7 +428,7 @@ const POS: React.FC = () => {
         <CustomerLookup
           isOpen={showCustomerLookup}
           onClose={() => setShowCustomerLookup(false)}
-          onSelectCustomer={setSelectedCustomer}
+          onSelectCustomer={handleCustomerSelect}
         />
       )}
     </div>

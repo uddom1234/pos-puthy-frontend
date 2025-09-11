@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 
 // Create axios instance
@@ -50,9 +50,11 @@ export interface Product {
   category: string;
   price: number;
   stock: number;
+  hasStock: boolean;
   lowStockThreshold: number;
   description: string;
   metadata?: Record<string, any>;
+  imageUrl?: string;
 }
 
 export interface Transaction {
@@ -81,9 +83,32 @@ export interface IncomeExpense {
   id: string;
   type: 'income' | 'expense';
   category: string;
+  categoryId?: string;
+  categoryName?: string;
+  categoryColor?: string;
   description: string;
   amount: number;
   date: string;
+}
+
+export interface IncomeCategory {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Customer {
@@ -105,13 +130,12 @@ export interface Order {
     customizations?: any;
   }>;
   total: number;
-  status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
-  paymentStatus: 'unpaid' | 'paid' | 'partial';
-  paymentMethod?: 'cash' | 'qr';
   createdAt: string;
   tableNumber?: string;
   notes?: string;
   metadata?: Record<string, any>;
+  paymentStatus?: 'unpaid' | 'paid';
+  paymentMethod?: 'cash' | 'qr';
 }
 
 export interface DynamicField {
@@ -230,6 +254,52 @@ export const incomeExpenseAPI = {
   },
 };
 
+// Income Categories API
+export const incomeCategoriesAPI = {
+  getAll: async (): Promise<IncomeCategory[]> => {
+    const response = await api.get('/income-categories');
+    return response.data;
+  },
+  
+  create: async (category: Omit<IncomeCategory, 'id' | 'createdAt' | 'updatedAt'>): Promise<IncomeCategory> => {
+    const response = await api.post('/income-categories', category);
+    return response.data;
+  },
+  
+  update: async (id: string, category: Partial<IncomeCategory>): Promise<IncomeCategory> => {
+    const response = await api.put(`/income-categories/${id}`, category);
+    return response.data;
+  },
+  
+  delete: async (id: string): Promise<void> => {
+    const response = await api.delete(`/income-categories/${id}`);
+    return response.data;
+  },
+};
+
+// Expense Categories API
+export const expenseCategoriesAPI = {
+  getAll: async (): Promise<ExpenseCategory[]> => {
+    const response = await api.get('/expense-categories');
+    return response.data;
+  },
+  
+  create: async (category: Omit<ExpenseCategory, 'id' | 'createdAt' | 'updatedAt'>): Promise<ExpenseCategory> => {
+    const response = await api.post('/expense-categories', category);
+    return response.data;
+  },
+  
+  update: async (id: string, category: Partial<ExpenseCategory>): Promise<ExpenseCategory> => {
+    const response = await api.put(`/expense-categories/${id}`, category);
+    return response.data;
+  },
+  
+  delete: async (id: string): Promise<void> => {
+    const response = await api.delete(`/expense-categories/${id}`);
+    return response.data;
+  },
+};
+
 // Orders API
 export const ordersAPI = {
   getAll: async () => {
@@ -237,24 +307,26 @@ export const ordersAPI = {
     return response.data;
   },
   
-  create: async (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => {
+  create: async (order: Omit<Order, 'id' | 'createdAt'>) => {
     const response = await api.post('/orders', order);
     return response.data;
   },
   
-  updateStatus: async (id: string, status: Order['status']) => {
-    const response = await api.put(`/orders/${id}/status`, { status });
-    return response.data;
-  },
-  
-  updatePayment: async (id: string, paymentStatus: Order['paymentStatus'], paymentMethod?: Order['paymentMethod'], discount?: number, cashReceived?: number) => {
-    const response = await api.put(`/orders/${id}/payment`, { paymentStatus, paymentMethod, discount, cashReceived });
-    return response.data;
-  },
   update: async (id: string, order: Partial<Order>) => {
     const response = await api.put(`/orders/${id}`, order);
     return response.data;
   },
+  
+  updatePayment: async (id: string, paymentStatus: 'unpaid' | 'paid', paymentMethod?: 'cash' | 'qr', discount?: number, cashReceived?: number) => {
+    const response = await api.put(`/orders/${id}/payment`, {
+      paymentStatus,
+      paymentMethod,
+      discount,
+      cashReceived
+    });
+    return response.data;
+  },
+  
   delete: async (id: string) => {
     const response = await api.delete(`/orders/${id}`);
     return response.data;

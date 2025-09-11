@@ -4,7 +4,7 @@ import { readAppSettings } from '../contexts/AppSettingsContext';
 
 interface PrintExtras {
   paymentMethod?: 'cash' | 'qr';
-  status?: 'paid' | 'unpaid' | Order['status'];
+  status?: 'paid' | 'unpaid';
   customer?: Customer | null;
 }
 

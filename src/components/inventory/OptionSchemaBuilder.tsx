@@ -7,6 +7,10 @@ export interface OptionItem {
   label: string;
   value: string;
   priceDelta: number;
+  valueType?: 'text' | 'number' | 'boolean' | 'date';
+  valueNumber?: number | null;
+  valueBoolean?: boolean | null;
+  valueDate?: string | null; // ISO yyyy-mm-dd
 }
 
 export interface OptionField {
@@ -39,7 +43,7 @@ const OptionSchemaBuilder: React.FC<Props> = ({ value, onChange }) => {
 
   const addOption = (fi: number) => {
     const opts = value[fi].options || [];
-    const next = [...opts, { label: '', value: '', priceDelta: 0 }];
+    const next = [...opts, { label: '', value: '', priceDelta: 0, valueType: 'text' as const, valueNumber: null, valueBoolean: null, valueDate: null }];
     updateField(fi, { options: next });
   };
   const updateOption = (fi: number, oi: number, key: keyof OptionItem, val: any) => {
@@ -92,19 +96,52 @@ const OptionSchemaBuilder: React.FC<Props> = ({ value, onChange }) => {
             </div>
             {(field.options || []).length === 0 && <div className="text-sm text-gray-500">No options yet</div>}
             {(field.options || []).map((opt, oi) => (
-              <div key={oi} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              <div key={oi} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-start">
                 <input className="input-field min-w-0" placeholder="Label" value={opt.label} onChange={(e) => updateOption(fi, oi, 'label', e.target.value)} />
-                <input className="input-field min-w-0" placeholder="Value" value={opt.value} onChange={(e) => updateOption(fi, oi, 'value', e.target.value)} />
-                <div className="flex items-center space-x-2">
+
+                <select className="input-field" value={opt.valueType || 'text'} onChange={(e) => updateOption(fi, oi, 'valueType', e.target.value as any)}>
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                  <option value="boolean">Boolean</option>
+                  <option value="date">Date</option>
+                </select>
+
+                {/* value control by type */}
+                { (opt.valueType || 'text') === 'text' && (
+                  <input className="input-field min-w-0" placeholder="Value" value={opt.value} onChange={(e) => updateOption(fi, oi, 'value', e.target.value)} />
+                )}
+                { opt.valueType === 'number' && (
                   <NumberInput
-                    value={opt.priceDelta || null}
-                    onChange={(value) => updateOption(fi, oi, 'priceDelta', value || 0)}
-                    placeholder="0.00"
-                    step={0.01}
+                    value={opt.valueNumber ?? null}
+                    onChange={(v) => updateOption(fi, oi, 'valueNumber', v)}
+                    placeholder="0"
                     allowDecimals={true}
                     className="input-field min-w-0"
                   />
-                  <button type="button" className="text-red-600" onClick={() => removeOption(fi, oi)}>Remove</button>
+                )}
+                { opt.valueType === 'boolean' && (
+                  <select className="input-field" value={opt.valueBoolean ? 'true' : 'false'} onChange={(e) => updateOption(fi, oi, 'valueBoolean', e.target.value === 'true')}>
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                  </select>
+                )}
+                { opt.valueType === 'date' && (
+                  <input type="date" className="input-field" value={opt.valueDate || ''} onChange={(e) => updateOption(fi, oi, 'valueDate', e.target.value)} />
+                )}
+
+                <div className="flex items-center space-x-2">
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-500 mb-1">Price Delta</label>
+                    <NumberInput
+                      value={opt.priceDelta || null}
+                      onChange={(value) => updateOption(fi, oi, 'priceDelta', value || 0)}
+                      placeholder="0.00"
+                      step={0.01}
+                      allowDecimals={true}
+                      className="input-field min-w-0"
+                    />
+                  </div>
+                  <button type="button" className="text-red-600 text-sm" onClick={() => removeOption(fi, oi)}>Remove</button>
                 </div>
               </div>
             ))}

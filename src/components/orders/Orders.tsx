@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { ordersAPI, Order, schemasAPI, DynamicField } from '../../services/api';
-import { ClockIcon, CheckCircleIcon, XCircleIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { printOrderReceipt } from '../../utils/printReceipt';
 import { readAppSettings } from '../../contexts/AppSettingsContext';
-import PaymentProcessingModal from '../pos/PaymentProcessingModal';
 import EditOrderModal from './EditOrderModal';
+import PaymentProcessingModal from '../pos/PaymentProcessingModal';
 
 const Orders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [orderSchema, setOrderSchema] = useState<DynamicField[]>([]);
-  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -40,29 +40,19 @@ const Orders: React.FC = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+  const handleEditOrder = async (updatedOrder: Partial<Order>) => {
+    if (!selectedOrderForEdit) return;
+    
     try {
-      await ordersAPI.updateStatus(orderId, status);
+      await ordersAPI.update(selectedOrderForEdit.id, updatedOrder);
       setOrders(prev => 
         prev.map(order => 
-          order.id === orderId ? { ...order, status } : order
+          order.id === selectedOrderForEdit.id ? { ...order, ...updatedOrder } : order
         )
       );
+      setSelectedOrderForEdit(null);
     } catch (error) {
-      console.error('Error updating order status:', error);
-    }
-  };
-
-  const updatePaymentStatus = async (orderId: string, paymentStatus: Order['paymentStatus'], paymentMethod?: Order['paymentMethod']) => {
-    try {
-      await ordersAPI.updatePayment(orderId, paymentStatus, paymentMethod);
-      setOrders(prev => 
-        prev.map(order => 
-          order.id === orderId ? { ...order, paymentStatus, paymentMethod } : order
-        )
-      );
-    } catch (error) {
-      console.error('Error updating payment status:', error);
+      console.error('Error updating order:', error);
     }
   };
 
@@ -77,28 +67,21 @@ const Orders: React.FC = () => {
         )
       );
       setSelectedOrderForPayment(null);
-      // Optionally update order status to completed if it's ready
-      if (selectedOrderForPayment.status === 'ready') {
-        await updateOrderStatus(selectedOrderForPayment.id, 'completed');
-      }
     } catch (error) {
       console.error('Error processing payment:', error);
     }
   };
 
-  const handleEditOrder = async (updatedOrder: Partial<Order>) => {
-    if (!selectedOrderForEdit) return;
-    
+  const updatePaymentStatus = async (orderId: string, paymentStatus: 'unpaid' | 'paid', paymentMethod?: 'cash' | 'qr') => {
     try {
-      await ordersAPI.update(selectedOrderForEdit.id, updatedOrder);
+      await ordersAPI.updatePayment(orderId, paymentStatus, paymentMethod);
       setOrders(prev => 
         prev.map(order => 
-          order.id === selectedOrderForEdit.id ? { ...order, ...updatedOrder } : order
+          order.id === orderId ? { ...order, paymentStatus, paymentMethod } : order
         )
       );
-      setSelectedOrderForEdit(null);
     } catch (error) {
-      console.error('Error updating order:', error);
+      console.error('Error updating payment status:', error);
     }
   };
 
@@ -118,38 +101,12 @@ const Orders: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: Order['status']) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'preparing': return 'bg-blue-100 text-blue-800';
-      case 'ready': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPaymentStatusColor = (paymentStatus: Order['paymentStatus']) => {
+  const getPaymentStatusColor = (paymentStatus?: string) => {
     switch (paymentStatus) {
       case 'paid': return 'bg-green-100 text-green-800';
       case 'unpaid': return 'bg-red-100 text-red-800';
       case 'partial': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (status: Order['status']) => {
-    switch (status) {
-      case 'pending':
-      case 'preparing':
-        return <ClockIcon className="h-4 w-4" />;
-      case 'ready':
-      case 'completed':
-        return <CheckCircleIcon className="h-4 w-4" />;
-      case 'cancelled':
-        return <XCircleIcon className="h-4 w-4" />;
-      default:
-        return null;
     }
   };
 
@@ -166,7 +123,7 @@ const Orders: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Orders</h1>
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          {orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length} active orders
+          {orders.length} total orders
         </div>
       </div>
 
@@ -190,12 +147,8 @@ const Orders: React.FC = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end xl:items-center space-y-2 sm:space-y-0 sm:space-x-4 lg:space-x-0 lg:space-y-2 xl:space-x-4 xl:space-y-0">
                   <div className="flex flex-col space-y-1">
-                    <div className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                      {getStatusIcon(order.status)}
-                      <span>{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
-                    </div>
                     <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                      {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                      {order.paymentStatus ? order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1) : 'Unpaid'}
                       {order.paymentMethod && ` (${order.paymentMethod.toUpperCase()})`}
                     </div>
                   </div>
@@ -259,65 +212,21 @@ const Orders: React.FC = () => {
                 </div>
               )}
 
-              {order.status !== 'completed' && order.status !== 'cancelled' && (
+              {/* Payment Controls */}
+              {order.paymentStatus !== 'paid' && (
                 <div className="space-y-3">
-                  {/* Order Status Controls */}
-                  <div className="flex space-x-2">
-                    {order.status === 'pending' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="btn-primary text-sm"
-                      >
-                        Start Preparing
-                      </button>
-                    )}
-                    {order.status === 'preparing' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'ready')}
-                        className="btn-secondary text-sm"
-                      >
-                        Mark Ready
-                      </button>
-                    )}
-                    {order.status === 'ready' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'completed')}
-                        className="btn-primary text-sm"
-                      >
-                        Complete Order
-                      </button>
-                    )}
+                  <div className="flex space-x-2 pt-2 border-t border-gray-200">
+                    <span className="text-sm text-gray-600 self-center">Payment:</span>
                     <button
-                      onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                      className="px-3 py-1 border border-red-300 text-red-700 rounded text-sm hover:bg-red-50"
+                      onClick={() => setSelectedOrderForPayment(order)}
+                      className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center space-x-2"
                     >
-                      Cancel
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span>Process Payment</span>
                     </button>
                   </div>
-                  
-                  {/* Payment Controls */}
-                  {order.paymentStatus !== 'paid' && (
-                    <div className="flex space-x-2 pt-2 border-t border-gray-200">
-                      <span className="text-sm text-gray-600 self-center">Payment:</span>
-                      <button
-                        onClick={() => setSelectedOrderForPayment(order)}
-                        className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 flex items-center space-x-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span>Process Payment</span>
-                      </button>
-                      {order.paymentStatus === 'unpaid' && (
-                        <button
-                          onClick={() => updatePaymentStatus(order.id, 'partial')}
-                          className="px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
-                        >
-                          Partial Payment
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </div>

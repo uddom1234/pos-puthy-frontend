@@ -28,7 +28,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState<number>(0);
   const [cashReceived, setCashReceived] = useState<number>(0);
-  const [qrStatus, setQrStatus] = useState<'paid' | 'unpaid'>('unpaid');
+  // QR specific status removed; QR is treated as paid upon processing
 
   const calculateDiscount = () => {
     if (discountType === 'percentage') {
@@ -64,7 +64,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       discount: calculateDiscount(),
       loyaltyPointsUsed: loyaltyPointsUsed || undefined,
       cashReceived: paymentMethod === 'cash' ? cashReceived : undefined,
-      status: paymentMethod === 'qr' ? qrStatus : 'paid',
+      status: 'paid',
     });
   };
 
@@ -86,9 +86,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Payment Method */}
+          {/* Payment Method + Pay Later */}
           <div>
-            <h3 className="text-lg font-medium mb-3">Payment Method</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-medium">Payment Method</h3>
+              <button
+                type="button"
+                onClick={() =>
+                  onPayment({
+                    paymentMethod,
+                    discount: calculateDiscount(),
+                    loyaltyPointsUsed: loyaltyPointsUsed || undefined,
+                    cashReceived: undefined,
+                    status: 'unpaid',
+                  })
+                }
+                className="px-3 py-1.5 border border-yellow-300 text-yellow-800 rounded-lg hover:bg-yellow-50 text-sm"
+              >
+                Pay Later
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { method: 'cash' as const, icon: BanknotesIcon, label: 'Cash' },
@@ -183,20 +200,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           )}
 
-          {/* QR Status */}
-          {paymentMethod === 'qr' && (
-            <div>
-              <h3 className="text-lg font-medium mb-3">QR Payment Status</h3>
-              <select
-                value={qrStatus}
-                onChange={(e) => setQrStatus(e.target.value as 'paid' | 'unpaid')}
-                className="input-field"
-              >
-                <option value="paid">Paid</option>
-                <option value="unpaid">Unpaid</option>
-              </select>
-            </div>
-          )}
+          {/* QR section no longer includes payment status */}
 
           {/* Payment Summary */}
           <div className="border-t pt-4 space-y-2">
