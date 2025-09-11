@@ -3,6 +3,7 @@ import { incomeExpenseAPI, IncomeExpense, incomeCategoriesAPI, IncomeCategory, e
 import { PlusIcon, FunnelIcon, PencilIcon, TrashIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import NumberInput from '../common/NumberInput';
 import UnifiedCategoryManagementModal from './UnifiedCategoryManagementModal';
+import { TableSkeleton, CardSkeleton, FilterSkeleton } from '../common/SkeletonLoader';
 
 const IncomeExpensePage: React.FC = () => {
   const [entries, setEntries] = useState<IncomeExpense[]>([]);
@@ -89,16 +90,39 @@ const IncomeExpensePage: React.FC = () => {
 
   const handleBulkDelete = async () => {
     if (selectedEntries.size === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${selectedEntries.size} selected entries?`)) return;
+    
+    const selectedCount = selectedEntries.size;
+    const selectedIds = Array.from(selectedEntries);
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedCount} selected entries? This action cannot be undone.`)) return;
     
     try {
       setIsDeleting(true);
-      await incomeExpenseAPI.bulkDelete(Array.from(selectedEntries));
+      console.log('Deleting entries:', selectedIds); // Debug log
+      console.log('Selected IDs type:', typeof selectedIds[0]); // Check ID type
+      console.log('Selected IDs length:', selectedIds.length);
+      
+      await incomeExpenseAPI.bulkDelete(selectedIds);
+      
+      // Clear selection and refresh data
       setSelectedEntries(new Set());
-      fetchEntries();
+      await fetchEntries();
+      
+      // Show success message
+      alert(`Successfully deleted ${selectedCount} entries`);
     } catch (error) {
       console.error('Error bulk deleting entries:', error);
-      alert('Failed to delete entries');
+      console.error('Error details:', error);
+      
+      // More detailed error message
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = JSON.stringify(error);
+      }
+      
+      alert(`Failed to delete entries. Error: ${errorMessage}`);
     } finally {
       setIsDeleting(false);
     }
@@ -160,15 +184,15 @@ const IncomeExpensePage: React.FC = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg max-w-md w-full mx-4">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold">Add New Entry</h2>
+      <div className="modal-overlay">
+        <div className="modal-content max-w-md w-full mx-4">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Entry</h2>
           </div>
           
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData(prev => ({ 
@@ -185,7 +209,7 @@ const IncomeExpensePage: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
@@ -200,7 +224,7 @@ const IncomeExpensePage: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
               <input
                 type="text"
                 value={formData.description}
@@ -265,8 +289,24 @@ const IncomeExpensePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-64 skeleton-shimmer rounded"></div>
+          <div className="flex space-x-3">
+            <div className="h-10 w-32 skeleton-shimmer rounded-lg"></div>
+            <div className="h-10 w-32 skeleton-shimmer rounded-lg"></div>
+            <div className="h-10 w-32 skeleton-shimmer rounded-lg"></div>
+          </div>
+        </div>
+        
+        <CardSkeleton count={3} />
+        
+        <div className="card p-6">
+          <div className="h-6 w-24 skeleton-shimmer rounded mb-4"></div>
+          <FilterSkeleton count={4} />
+        </div>
+        
+        <TableSkeleton rows={5} columns={7} />
       </div>
     );
   }
@@ -274,7 +314,7 @@ const IncomeExpensePage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Income & Expense Tracking</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Income & Expense Tracking</h1>
         <div className="flex space-x-3">
           <button onClick={() => fetchEntries(false)} className="btn-outline">Refresh</button>
           <button
@@ -296,31 +336,83 @@ const IncomeExpensePage: React.FC = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card p-6 bg-green-50 border-green-200">
-          <h3 className="text-lg font-semibold text-green-900">Total Income</h3>
-          <p className="text-3xl font-bold text-green-600">${getTotalIncome().toFixed(2)}</p>
+        <div className="card p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-green-700 dark:text-green-300">Total Income</p>
+                <p className="text-3xl font-bold text-green-600 dark:text-green-400">${getTotalIncome().toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-green-600 dark:text-green-400 font-medium">+{entries.filter(e => e.type === 'income').length} entries</div>
+            </div>
+          </div>
         </div>
-        <div className="card p-6 bg-red-50 border-red-200">
-          <h3 className="text-lg font-semibold text-red-900">Total Expenses</h3>
-          <p className="text-3xl font-bold text-red-600">${getTotalExpenses().toFixed(2)}</p>
+
+        <div className="card p-6 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-red-200 dark:border-red-800 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">Total Expenses</p>
+                <p className="text-3xl font-bold text-red-600 dark:text-red-400">${getTotalExpenses().toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-red-600 dark:text-red-400 font-medium">+{entries.filter(e => e.type === 'expense').length} entries</div>
+            </div>
+          </div>
         </div>
-        <div className="card p-6 bg-blue-50 border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-900">Net Profit</h3>
-          <p className={`text-3xl font-bold ${getNetProfit() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ${getNetProfit().toFixed(2)}
-          </p>
+
+        <div className="card p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Net Profit</p>
+                <p className={`text-3xl font-bold ${getNetProfit() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  ${getNetProfit().toFixed(2)}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className={`text-xs font-medium ${getNetProfit() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {getNetProfit() >= 0 ? 'Profit' : 'Loss'}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Filters */}
       <div className="card p-6">
         <div className="flex items-center space-x-4 mb-4">
-          <FunnelIcon className="h-5 w-5 text-gray-400" />
-          <span className="font-medium text-gray-700">Filters</span>
+          <FunnelIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">Filters</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
             <input
               type="date"
               value={filters.startDate}
@@ -329,7 +421,7 @@ const IncomeExpensePage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
             <input
               type="date"
               value={filters.endDate}
@@ -338,7 +430,7 @@ const IncomeExpensePage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
             <select
               value={filters.type}
               onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as any }))}
@@ -350,7 +442,7 @@ const IncomeExpensePage: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
             <input
               type="text"
               value={filters.category}
@@ -364,114 +456,156 @@ const IncomeExpensePage: React.FC = () => {
 
       {/* Bulk Actions */}
       {selectedEntries.size > 0 && (
-        <div className="card bg-blue-50 border-blue-200">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-blue-800">
-              {selectedEntries.size} entries selected
-            </p>
-            <button
-              onClick={handleBulkDelete}
-              disabled={isDeleting}
-              className="btn-secondary bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-            >
-              {isDeleting ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Deleting...
-                </div>
-              ) : (
-                <>
-                  <TrashIcon className="h-4 w-4 mr-1" />
-                  Delete Selected
-                </>
-              )}
-            </button>
+        <div className="card bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-200 dark:border-red-800 shadow-lg">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <TrashIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                  {selectedEntries.size} {selectedEntries.size === 1 ? 'entry' : 'entries'} selected
+                </p>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setSelectedEntries(new Set())}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <TrashIcon className="h-4 w-4" />
+                    <span>Delete Selected</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Entries Table */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left">
+                <th className="px-6 py-4 text-left">
                   <input
                     type="checkbox"
                     checked={selectedEntries.size === entries.length && entries.length > 0}
                     onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   Amount
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {entries.map((entry) => (
-                <tr key={entry.id} className={selectedEntries.has(entry.id) ? 'bg-blue-50' : ''}>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {entries.map((entry, index) => (
+                <tr 
+                  key={entry.id} 
+                  className={`group hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                    selectedEntries.has(entry.id) 
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' 
+                      : ''
+                  } ${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50'}`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
                       type="checkbox"
                       checked={selectedEntries.has(entry.id)}
                       onChange={() => handleSelectEntry(entry.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(entry.date).toLocaleDateString()}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {new Date(entry.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                       entry.type === 'income' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                     }`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${
+                        entry.type === 'income' ? 'bg-green-500' : 'bg-red-500'
+                      }`}></div>
                       {entry.type.charAt(0).toUpperCase() + entry.type.slice(1)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {entry.category}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {entry.category}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {entry.description}
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate" title={entry.description}>
+                      {entry.description}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <span className={entry.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className={`text-sm font-bold ${
+                      entry.type === 'income' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
                       {entry.type === 'income' ? '+' : '-'}${entry.amount.toFixed(2)}
-                    </span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex space-x-2">
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex items-center justify-center space-x-2">
                       <button
                         onClick={() => setEditingEntry(entry)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Edit"
+                        className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Edit entry"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteEntry(entry.id)}
                         disabled={isDeleting}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                        title="Delete"
+                        className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete entry"
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
@@ -482,6 +616,30 @@ const IncomeExpensePage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        
+        {entries.length === 0 && (
+          <div className="text-center py-12">
+            <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No entries found</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              {filters.startDate || filters.endDate || filters.type || filters.category
+                ? 'Try adjusting your filters to see more results.'
+                : 'Get started by adding your first income or expense entry.'
+              }
+            </p>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn-primary flex items-center space-x-2 mx-auto"
+            >
+              <PlusIcon className="h-5 w-5" />
+              <span>Add Entry</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add/Edit Entry Modal */}

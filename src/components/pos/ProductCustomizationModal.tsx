@@ -151,19 +151,19 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50"
+      className="modal-overlay"
       onClick={onClose}
     >
       <div className="h-full w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
         <div
           ref={containerRef}
-          className="bg-white rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto"
+          className="modal-content max-w-md w-full mx-4"
         >
-          <div className="flex items-center justify-between p-6 border-b">
-            <h2 className="text-xl font-semibold">Customize {product.name}</h2>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Customize {product.name}</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400"
             >
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -175,9 +175,9 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
               <div className="space-y-6">
                 {((product as any).optionSchema as any[]).map((group: any) => (
                   <div key={group.key}>
-                    <h3 className="text-lg font-medium mb-3">
+                    <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">
                       {group.label}
-                      {group.required && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 align-middle">required</span>}
+                      {group.required && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 align-middle">required</span>}
                     </h3>
                     <div className="space-y-2">
                       {group.type === 'single' ? (
@@ -191,8 +191,8 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                               onChange={(e) => setCustomizations(prev => ({ ...prev, [group.key]: e.target.value }))}
                               className="text-primary-600"
                             />
-                            <span className="flex-1">{opt.label}</span>
-                            <span className="text-gray-600">{opt.priceDelta >= 0 ? `+$${opt.priceDelta.toFixed(2)}` : `-$${Math.abs(opt.priceDelta).toFixed(2)}`}</span>
+                            <span className="flex-1 text-gray-900 dark:text-white">{opt.label}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{opt.priceDelta >= 0 ? `+$${opt.priceDelta.toFixed(2)}` : `-$${Math.abs(opt.priceDelta).toFixed(2)}`}</span>
                           </label>
                         ))
                       ) : (
@@ -210,8 +210,8 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                               }}
                               className="text-primary-600"
                             />
-                            <span className="flex-1">{opt.label}</span>
-                            <span className="text-gray-600">{opt.priceDelta >= 0 ? `+$${opt.priceDelta.toFixed(2)}` : `-$${Math.abs(opt.priceDelta).toFixed(2)}`}</span>
+                            <span className="flex-1 text-gray-900 dark:text-white">{opt.label}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{opt.priceDelta >= 0 ? `+$${opt.priceDelta.toFixed(2)}` : `-$${Math.abs(opt.priceDelta).toFixed(2)}`}</span>
                           </label>
                         ))
                       )}
@@ -219,7 +219,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                   </div>
                 ))}
                 {missingRequired.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded p-3">
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded p-3">
                     Please select: {missingRequired.join(', ')}
                   </div>
                 )}
@@ -229,7 +229,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
             {/* Size Selection for Coffee (legacy) */}
             {!hasDynamic && product.category === 'coffee' && (
               <div>
-                <h3 className="text-lg font-medium mb-3">Size</h3>
+                <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Size</h3>
                 <div className="space-y-2">
                   {(['small', 'medium', 'large'] as const).map(size => (
                     <label key={size} className="flex items-center space-x-3 cursor-pointer">
@@ -241,8 +241,8 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                         onChange={(e) => setCustomizations(prev => ({ ...prev, size: e.target.value as any }))}
                         className="text-primary-600"
                       />
-                      <span className="flex-1">{size.charAt(0).toUpperCase() + size.slice(1)}</span>
-                      <span className="text-gray-600">
+                      <span className="flex-1 text-gray-900 dark:text-white">{size.charAt(0).toUpperCase() + size.slice(1)}</span>
+                      <span className="text-gray-600 dark:text-gray-400">
                         {size === 'small' && '-$0.50'}
                         {size === 'medium' && '$0.00'}
                         {size === 'large' && '+$0.75'}
@@ -256,7 +256,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
             {/* Sugar Level for Coffee (legacy) */}
             {!hasDynamic && product.category === 'coffee' && (
               <div>
-                <h3 className="text-lg font-medium mb-3">Sugar Level</h3>
+                <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Sugar Level</h3>
                 <div className="space-y-2">
                   {(['less', 'normal', 'extra'] as const).map(sugar => (
                     <label key={sugar} className="flex items-center space-x-3 cursor-pointer">
@@ -268,7 +268,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                         onChange={(e) => setCustomizations(prev => ({ ...prev, sugar: e.target.value as any }))}
                         className="text-primary-600"
                       />
-                      <span>{sugar.charAt(0).toUpperCase() + sugar.slice(1)}</span>
+                      <span className="text-gray-900 dark:text-white">{sugar.charAt(0).toUpperCase() + sugar.slice(1)}</span>
                     </label>
                   ))}
                 </div>
@@ -278,7 +278,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
             {/* Legacy Add-ons */}
             {!hasDynamic && (
               <div>
-                <h3 className="text-lg font-medium mb-3">Add-ons</h3>
+                <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Add-ons</h3>
                 <div className="space-y-2">
                   {availableAddOns.map(addon => (
                     <label key={addon.name} className="flex items-center space-x-3 cursor-pointer">
@@ -288,8 +288,8 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                         onChange={() => handleAddOnToggle(addon)}
                         className="text-primary-600"
                       />
-                      <span className="flex-1">{addon.name}</span>
-                      <span className="text-gray-600">
+                      <span className="flex-1 text-gray-900 dark:text-white">{addon.name}</span>
+                      <span className="text-gray-600 dark:text-gray-400">
                         {addon.price > 0 ? `+$${addon.price.toFixed(2)}` : 'Free'}
                       </span>
                     </label>
@@ -299,18 +299,18 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
             )}
 
             {/* Price Summary */}
-            <div className="border-t pt-4">
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <div className="flex justify-between items-center text-lg font-semibold">
-                <span>Total Price:</span>
-                <span className="text-primary-600">${getTotalPrice().toFixed(2)}</span>
+                <span className="text-gray-900 dark:text-white">Total Price:</span>
+                <span className="text-primary-600 dark:text-primary-400">${getTotalPrice().toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          <div className="p-6 border-t bg-gray-50 flex space-x-3 sticky bottom-0 bg-white">
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex space-x-3 sticky bottom-0">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
             >
               Cancel
             </button>

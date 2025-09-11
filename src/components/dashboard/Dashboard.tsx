@@ -7,6 +7,7 @@ import {
   ExclamationTriangleIcon,
   ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline';
+import { CardSkeleton, ChartSkeleton } from '../common/SkeletonLoader';
 
 interface SalesSummary {
   period: string;
@@ -56,8 +57,28 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 dark:border-primary-400"></div>
+      <div className="space-y-6">
+        <div className="h-8 w-48 skeleton-shimmer rounded"></div>
+        
+        <CardSkeleton count={4} />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartSkeleton />
+          <ChartSkeleton />
+        </div>
+        
+        <div className="card p-6">
+          <div className="h-6 w-48 skeleton-shimmer rounded mb-4"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="card p-4">
+                <div className="h-16 w-16 skeleton-shimmer rounded mb-3"></div>
+                <div className="h-4 w-20 skeleton-shimmer rounded mb-2"></div>
+                <div className="h-3 w-16 skeleton-shimmer rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

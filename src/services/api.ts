@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 // const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://146.190.81.53//api';
 
 
 // Create axios instance
@@ -249,7 +251,12 @@ export const incomeExpenseAPI = {
   },
   
   bulkDelete: async (ids: string[]) => {
-    const response = await api.delete('/income-expenses/bulk', { data: { ids } });
+    const response = await api.delete('/income-expenses/bulk', { 
+      data: ids,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     return response.data;
   },
 };

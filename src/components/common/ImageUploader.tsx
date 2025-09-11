@@ -27,7 +27,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, label })
     setError(null);
     setUploading(true);
     try {
-      const base = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+      const base = (process.env.REACT_APP_API_URL || 'http://146.190.81.53//api').replace(/\/$/, '');
       const fd = new FormData();
       fd.append('file', file);
       const resp = await fetch(`${base}/storage/b2/upload`, { method: 'POST', body: fd });
@@ -54,12 +54,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, label })
 
   const baseDropClass = 'rounded-xl border-2 border-dashed transition-colors overflow-hidden';
   const dropClass = dragOver
-    ? `${baseDropClass} border-primary-400 bg-primary-50`
-    : `${baseDropClass} border-gray-300 hover:border-primary-300 bg-gray-50`;
+    ? `${baseDropClass} border-primary-400 dark:border-primary-500 bg-primary-50 dark:bg-primary-900/20`
+    : `${baseDropClass} border-gray-300 dark:border-gray-600 hover:border-primary-300 dark:hover:border-primary-400 bg-gray-50 dark:bg-gray-700`;
 
   return (
     <div>
-      {label && <label className="block text-sm font-medium text-gray-900 mb-2">{label}</label>}
+      {label && <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">{label}</label>}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
         {/* Preview / Drop Zone */}
@@ -84,7 +84,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, label })
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center p-4 text-gray-500 select-none">
+            <div className="flex flex-col items-center justify-center text-center p-4 text-gray-500 dark:text-gray-400 select-none">
               <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 118 0m-4-4V4m6 8a6 6 0 10-12 0 6 6 0 0012 0z" />
               </svg>
@@ -92,8 +92,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, label })
             </div>
           )}
           {uploading && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent"></div>
+            <div className="absolute inset-0 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 dark:border-primary-400 border-t-transparent"></div>
             </div>
           )}
         </div>
@@ -106,12 +106,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, label })
               <button type="button" className="btn-outline" onClick={() => onChange(undefined)}>Remove</button>
             )}
           </div>
-          <p className="text-xs text-gray-500">Recommended: square images (e.g. 800×800). JPG/PNG/WebP up to ~5MB.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Recommended: square images (e.g. 800×800). JPG/PNG/WebP up to ~5MB.</p>
         </div>
       </div>
 
       <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-      {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{error}</p>}
     </div>
   );
 };

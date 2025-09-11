@@ -5,6 +5,7 @@ import { printOrderReceipt } from '../../utils/printReceipt';
 import { readAppSettings } from '../../contexts/AppSettingsContext';
 import EditOrderModal from './EditOrderModal';
 import PaymentProcessingModal from '../pos/PaymentProcessingModal';
+import { TableSkeleton, CardSkeleton } from '../common/SkeletonLoader';
 
 const Orders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -112,8 +113,15 @@ const Orders: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 dark:border-primary-400"></div>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+          <div className="h-8 w-48 skeleton-shimmer rounded"></div>
+          <div className="h-10 w-32 skeleton-shimmer rounded-lg"></div>
+        </div>
+        
+        <CardSkeleton count={4} />
+        
+        <TableSkeleton rows={5} columns={6} />
       </div>
     );
   }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { customersAPI, Customer } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { PlusIcon, MagnifyingGlassIcon, GiftIcon } from '@heroicons/react/24/outline';
+import { TableSkeleton, CardSkeleton } from '../common/SkeletonLoader';
 
 const Customers: React.FC = () => {
   const { t } = useLanguage();
@@ -50,15 +51,15 @@ const Customers: React.FC = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg max-w-md w-full mx-4">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold">Add New Customer</h2>
+      <div className="modal-overlay">
+        <div className="modal-content max-w-md w-full mx-4">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Customer</h2>
           </div>
           
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
               <input
                 type="text"
                 value={formData.name}
@@ -69,7 +70,7 @@ const Customers: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone *</label>
               <input
                 type="tel"
                 value={formData.phone}
@@ -81,7 +82,7 @@ const Customers: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Member Card (Optional)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Member Card (Optional)</label>
               <input
                 type="text"
                 value={formData.memberCard}
@@ -119,17 +120,17 @@ const Customers: React.FC = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg max-w-md w-full mx-4">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold">Manage Loyalty Points</h2>
-            <p className="text-gray-600">{customer.name}</p>
-            <p className="text-sm text-gray-500">Current Points: {customer.loyaltyPoints}</p>
+      <div className="modal-overlay">
+        <div className="modal-content max-w-md w-full mx-4">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Manage Loyalty Points</h2>
+            <p className="text-gray-600 dark:text-gray-400">{customer.name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Current Points: {customer.loyaltyPoints}</p>
           </div>
           
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Operation</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Operation</label>
               <select
                 value={operation}
                 onChange={(e) => setOperation(e.target.value as any)}
@@ -141,7 +142,7 @@ const Customers: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points</label>
               <input
                 type="number"
                 min="0"
@@ -154,13 +155,13 @@ const Customers: React.FC = () => {
             </div>
 
             {operation === 'subtract' && points > customer.loyaltyPoints && (
-              <p className="text-red-600 text-sm">
+              <p className="text-red-600 dark:text-red-400 text-sm">
                 Cannot subtract more points than available ({customer.loyaltyPoints})
               </p>
             )}
             
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-700">
+            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 <strong>Preview:</strong> {customer.loyaltyPoints} {operation === 'add' ? '+' : '-'} {points} = {' '}
                 <span className="font-semibold">
                   {operation === 'add' 
@@ -220,8 +221,19 @@ const Customers: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-64 skeleton-shimmer rounded"></div>
+          <div className="h-10 w-32 skeleton-shimmer rounded-lg"></div>
+        </div>
+        
+        <CardSkeleton count={3} />
+        
+        <div className="card p-6">
+          <div className="h-6 w-32 skeleton-shimmer rounded mb-4"></div>
+          <div className="h-10 w-full skeleton-shimmer rounded-lg mb-6"></div>
+          <TableSkeleton rows={5} columns={6} />
+        </div>
       </div>
     );
   }
@@ -229,7 +241,7 @@ const Customers: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Customer Management</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customer Management</h1>
         <button
           onClick={() => setShowAddModal(true)}
           className="btn-primary flex items-center space-x-2"
@@ -241,17 +253,17 @@ const Customers: React.FC = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card p-6 bg-blue-50 border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-900">Total Customers</h3>
-          <p className="text-3xl font-bold text-blue-600">{customers.length}</p>
+        <div className="card p-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300">Total Customers</h3>
+          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{customers.length}</p>
         </div>
-        <div className="card p-6 bg-purple-50 border-purple-200">
-          <h3 className="text-lg font-semibold text-purple-900">Total Loyalty Points</h3>
-          <p className="text-3xl font-bold text-purple-600">{getTotalLoyaltyPoints().toLocaleString()}</p>
+        <div className="card p-6 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+          <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-300">Total Loyalty Points</h3>
+          <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{getTotalLoyaltyPoints().toLocaleString()}</p>
         </div>
-        <div className="card p-6 bg-green-50 border-green-200">
-          <h3 className="text-lg font-semibold text-green-900">Avg Points per Customer</h3>
-          <p className="text-3xl font-bold text-green-600">
+        <div className="card p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+          <h3 className="text-lg font-semibold text-green-900 dark:text-green-300">Avg Points per Customer</h3>
+          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
             {customers.length > 0 ? Math.round(getTotalLoyaltyPoints() / customers.length) : 0}
           </p>
         </div>
@@ -259,55 +271,55 @@ const Customers: React.FC = () => {
 
       {/* Search */}
       <div className="relative max-w-md">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           placeholder="Search customers..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="input-field w-full pl-10 pr-4 py-2"
         />
       </div>
 
       {/* Customers Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Phone
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Member Card
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Loyalty Points
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredCustomers.map((customer) => (
                 <tr key={customer.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{customer.name}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {customer.phone}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {customer.memberCard || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <GiftIcon className="h-4 w-4 text-purple-500 mr-1" />
-                      <span className="text-sm font-medium text-purple-600">
+                      <GiftIcon className="h-4 w-4 text-purple-500 dark:text-purple-400 mr-1" />
+                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
                         {customer.loyaltyPoints} points
                       </span>
                     </div>
@@ -318,7 +330,7 @@ const Customers: React.FC = () => {
                         setSelectedCustomer(customer);
                         setShowPointsModal(true);
                       }}
-                      className="text-primary-600 hover:text-primary-900"
+                      className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
                     >
                       Manage Points
                     </button>
@@ -331,7 +343,7 @@ const Customers: React.FC = () => {
 
         {filteredCustomers.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-500 dark:text-gray-400 text-lg">
               {searchTerm ? 'No customers found matching your search' : 'No customers found'}
             </p>
           </div>

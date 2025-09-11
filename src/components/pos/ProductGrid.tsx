@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product } from '../../services/api';
 import ProductCustomizationModal from './ProductCustomizationModal';
+import { ProductGridSkeleton } from '../common/SkeletonLoader';
 
 interface ProductGridProps {
   products: Product[];
@@ -33,18 +34,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loadin
   };
 
   if (loading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="card p-4 animate-pulse">
-            <div className="h-32 bg-gray-200 rounded-lg mb-3"></div>
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded"></div>
-          </div>
-        ))}
-      </div>
-    );
+    return <ProductGridSkeleton count={8} />;
   }
 
   if (products.length === 0) {
@@ -77,27 +67,27 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loadin
               </div>
             )}
             
-            <h3 className="font-semibold text-gray-900 mb-0.5 truncate" title={product.name}>{product.name}</h3>
-            <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2 min-h-[1.5rem]">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-0.5 truncate" title={product.name}>{product.name}</h3>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2 min-h-[1.5rem]">
               {product.description}
             </p>
             
             <div className="flex items-center justify-between">
-              <span className="text-base sm:text-lg font-bold text-primary-600">
+              <span className="text-base sm:text-lg font-bold text-primary-600 dark:text-primary-400">
                 ${product.price.toFixed(2)}
               </span>
               <div className="flex items-center space-x-2">
                 {product.hasStock && (
                   <span className={`text-[10px] sm:text-xs px-2 py-1 rounded-full whitespace-nowrap ${
                     product.stock > product.lowStockThreshold
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                      : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                   }`}>
                     {product.stock} left
                   </span>
                 )}
                 {(product.category === 'coffee' || product.category === 'food') && (
-                  <span className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                  <span className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                     Customizable
                   </span>
                 )}
