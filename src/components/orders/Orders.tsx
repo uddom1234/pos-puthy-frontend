@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { ordersAPI, Order, schemasAPI, DynamicField } from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { printOrderReceipt } from '../../utils/printReceipt';
 import { readAppSettings } from '../../contexts/AppSettingsContext';
+import { formatCambodianTime, formatRelativeTime } from '../../utils/timeUtils';
 import EditOrderModal from './EditOrderModal';
 import PaymentProcessingModal from '../pos/PaymentProcessingModal';
 import { TableSkeleton, CardSkeleton } from '../common/SkeletonLoader';
 
 const Orders: React.FC = () => {
+  const { t } = useLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [orderSchema, setOrderSchema] = useState<DynamicField[]>([]);
@@ -129,7 +132,7 @@ const Orders: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Orders</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('orders')}</h1>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {orders.length} total orders
         </div>
@@ -145,12 +148,15 @@ const Orders: React.FC = () => {
             <div key={order.id} className="card p-4 sm:p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-4 lg:space-y-0">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold">Order #{order.id.slice(-8)}</h3>
+                  <h3 className="text-lg font-semibold">{t('order_number')} #{order.id.slice(-8)}</h3>
                   <p className="text-gray-600">
-                    {new Date(order.createdAt).toLocaleString()}
+                    {formatCambodianTime(order.createdAt)}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {formatRelativeTime(order.createdAt)}
                   </p>
                   {order.tableNumber && (
-                    <p className="text-sm text-gray-500">Table: {order.tableNumber}</p>
+                    <p className="text-sm text-gray-500">{t('table')}: {order.tableNumber}</p>
                   )}
                 </div>
                 <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end xl:items-center space-y-2 sm:space-y-0 sm:space-x-4 lg:space-x-0 lg:space-y-2 xl:space-x-4 xl:space-y-0">
@@ -176,14 +182,14 @@ const Orders: React.FC = () => {
                       className="btn-outline text-sm flex items-center space-x-1"
                     >
                       <PencilIcon className="h-4 w-4" />
-                      <span>Edit</span>
+                      <span>{t('edit')}</span>
                     </button>
                     <button
                       onClick={() => setOrderToDelete(order)}
                       className="px-3 py-1 border border-red-300 text-red-700 rounded text-sm hover:bg-red-50 flex items-center space-x-1"
                     >
                       <TrashIcon className="h-4 w-4" />
-                      <span>Delete</span>
+                      <span>{t('delete')}</span>
                     </button>
                   </div>
                 </div>
@@ -232,7 +238,7 @@ const Orders: React.FC = () => {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      <span>Process Payment</span>
+                      <span>{t('process_payment')}</span>
                     </button>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface NumberInputProps {
   value?: number | null;
@@ -24,18 +24,23 @@ const NumberInput: React.FC<NumberInputProps> = ({
   allowDecimals = true
 }) => {
   const [displayValue, setDisplayValue] = useState<string>('');
+  const isEditingRef = useRef(false);
 
   useEffect(() => {
-    if (value === null || value === undefined) {
-      setDisplayValue('');
-    } else {
-      setDisplayValue(value.toString());
+    // Only update display value if we're not currently editing
+    if (!isEditingRef.current) {
+      if (value === null || value === undefined) {
+        setDisplayValue('');
+      } else {
+        setDisplayValue(value.toString());
+      }
     }
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
     setDisplayValue(inputValue);
+    isEditingRef.current = true;
 
     // Allow empty string for deletion
     if (inputValue === '') {
@@ -63,7 +68,12 @@ const NumberInput: React.FC<NumberInputProps> = ({
     }
   };
 
+  const handleFocus = () => {
+    isEditingRef.current = true;
+  };
+
   const handleBlur = () => {
+    isEditingRef.current = false;
     // On blur, if empty and required, set to 0
     if (displayValue === '' && required) {
       setDisplayValue('0');
@@ -115,6 +125,7 @@ const NumberInput: React.FC<NumberInputProps> = ({
       type="text"
       value={displayValue}
       onChange={handleChange}
+      onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { incomeExpenseAPI, IncomeExpense, incomeCategoriesAPI, IncomeCategory, expenseCategoriesAPI, ExpenseCategory } from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { formatCambodianTime } from '../../utils/timeUtils';
 import { PlusIcon, FunnelIcon, PencilIcon, TrashIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import NumberInput from '../common/NumberInput';
 import UnifiedCategoryManagementModal from './UnifiedCategoryManagementModal';
 import { TableSkeleton, CardSkeleton, FilterSkeleton } from '../common/SkeletonLoader';
 
 const IncomeExpensePage: React.FC = () => {
+  const { t } = useLanguage();
   const [entries, setEntries] = useState<IncomeExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -69,12 +72,12 @@ const IncomeExpensePage: React.FC = () => {
       setEditingEntry(null);
     } catch (error) {
       console.error('Error saving entry:', error);
-      alert('Failed to save entry');
+      alert(t('failed_to_save_entry'));
     }
   };
 
   const handleDeleteEntry = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this entry?')) return;
+    if (!window.confirm(t('are_you_sure_delete_entry'))) return;
     
     try {
       setIsDeleting(true);
@@ -82,7 +85,7 @@ const IncomeExpensePage: React.FC = () => {
       fetchEntries();
     } catch (error) {
       console.error('Error deleting entry:', error);
-      alert('Failed to delete entry');
+      alert(t('failed_to_delete_entry'));
     } finally {
       setIsDeleting(false);
     }
@@ -94,7 +97,7 @@ const IncomeExpensePage: React.FC = () => {
     const selectedCount = selectedEntries.size;
     const selectedIds = Array.from(selectedEntries);
     
-    if (!window.confirm(`Are you sure you want to delete ${selectedCount} selected entries? This action cannot be undone.`)) return;
+    if (!window.confirm(t('are_you_sure_delete_entries').replace('{count}', selectedCount.toString()))) return;
     
     try {
       setIsDeleting(true);
@@ -109,7 +112,7 @@ const IncomeExpensePage: React.FC = () => {
       await fetchEntries();
       
       // Show success message
-      alert(`Successfully deleted ${selectedCount} entries`);
+      alert(t('successfully_deleted_entries').replace('{count}', selectedCount.toString()));
     } catch (error) {
       console.error('Error bulk deleting entries:', error);
       console.error('Error details:', error);
@@ -122,7 +125,7 @@ const IncomeExpensePage: React.FC = () => {
         errorMessage = JSON.stringify(error);
       }
       
-      alert(`Failed to delete entries. Error: ${errorMessage}`);
+      alert(t('failed_to_delete_entries').replace('{error}', errorMessage));
     } finally {
       setIsDeleting(false);
     }
@@ -187,12 +190,12 @@ const IncomeExpensePage: React.FC = () => {
       <div className="modal-overlay">
         <div className="modal-content max-w-md w-full mx-4">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Entry</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('add_new_entry')}</h2>
           </div>
           
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('type')}</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData(prev => ({ 
@@ -203,20 +206,20 @@ const IncomeExpensePage: React.FC = () => {
                 className="input-field"
                 required
               >
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
+                <option value="income">{t('income')}</option>
+                <option value="expense">{t('expense')}</option>
               </select>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('category')}</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                 className="input-field"
                 required
               >
-                <option value="">Select Category</option>
+                <option value="">{t('select_category')}</option>
                 {categories[formData.type].map(category => (
                   <option key={category} value={category}>{category}</option>
                 ))}
@@ -224,7 +227,7 @@ const IncomeExpensePage: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('description')}</label>
               <input
                 type="text"
                 value={formData.description}
@@ -235,7 +238,7 @@ const IncomeExpensePage: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('amount_dollar')}</label>
               <NumberInput
                 value={formData.amount}
                 onChange={(value) => setFormData(prev => ({ ...prev, amount: value }))}
@@ -247,22 +250,22 @@ const IncomeExpensePage: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('date')}</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                className="input-field"
+                className="input-field dark:bg-gray-800"
                 required
               />
             </div>
             
             <div className="flex space-x-3 pt-4">
               <button type="button" onClick={onCancel} className="flex-1 btn-outline">
-                Cancel
+                {t('cancel')}
               </button>
               <button type="submit" className="flex-1 btn-primary">
-                Add Entry
+                {t('add_entry_button')}
               </button>
             </div>
           </form>
@@ -314,22 +317,22 @@ const IncomeExpensePage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Income & Expense Tracking</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('income_expense')}</h1>
         <div className="flex space-x-3">
-          <button onClick={() => fetchEntries(false)} className="btn-outline">Refresh</button>
+          <button onClick={() => fetchEntries(false)} className="btn-outline">{t('refresh')}</button>
           <button
             onClick={() => setShowCategoryModal(true)}
             className="btn-outline flex items-center space-x-2"
           >
             <Cog6ToothIcon className="h-5 w-5" />
-            <span>Manage Categories</span>
+            <span>{t('manage_categories')}</span>
           </button>
           <button
             onClick={() => setShowAddModal(true)}
             className="btn-primary flex items-center space-x-2"
           >
             <PlusIcon className="h-5 w-5" />
-            <span>Add Entry</span>
+            <span>{t('add_entry')}</span>
           </button>
         </div>
       </div>
@@ -347,12 +350,12 @@ const IncomeExpensePage: React.FC = () => {
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-green-700 dark:text-green-300">Total Income</p>
+                <p className="text-sm font-medium text-green-700 dark:text-green-300">{t('total_income')}</p>
                 <p className="text-3xl font-bold text-green-600 dark:text-green-400">${getTotalIncome().toFixed(2)}</p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-green-600 dark:text-green-400 font-medium">+{entries.filter(e => e.type === 'income').length} entries</div>
+              <div className="text-xs text-green-600 dark:text-green-400 font-medium">+{entries.filter(e => e.type === 'income').length} {t('entries')}</div>
             </div>
           </div>
         </div>
@@ -368,12 +371,12 @@ const IncomeExpensePage: React.FC = () => {
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-red-700 dark:text-red-300">Total Expenses</p>
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">{t('total_expenses')}</p>
                 <p className="text-3xl font-bold text-red-600 dark:text-red-400">${getTotalExpenses().toFixed(2)}</p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-red-600 dark:text-red-400 font-medium">+{entries.filter(e => e.type === 'expense').length} entries</div>
+              <div className="text-xs text-red-600 dark:text-red-400 font-medium">+{entries.filter(e => e.type === 'expense').length} {t('entries')}</div>
             </div>
           </div>
         </div>
@@ -389,7 +392,7 @@ const IncomeExpensePage: React.FC = () => {
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Net Profit</p>
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('net_profit')}</p>
                 <p className={`text-3xl font-bold ${getNetProfit() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   ${getNetProfit().toFixed(2)}
                 </p>
@@ -397,7 +400,7 @@ const IncomeExpensePage: React.FC = () => {
             </div>
             <div className="text-right">
               <div className={`text-xs font-medium ${getNetProfit() >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {getNetProfit() >= 0 ? 'Profit' : 'Loss'}
+                {getNetProfit() >= 0 ? t('profit') : t('loss')}
               </div>
             </div>
           </div>
@@ -408,11 +411,11 @@ const IncomeExpensePage: React.FC = () => {
       <div className="card p-6">
         <div className="flex items-center space-x-4 mb-4">
           <FunnelIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-          <span className="font-medium text-gray-700 dark:text-gray-300">Filters</span>
+          <span className="font-medium text-gray-700 dark:text-gray-300">{t('filters')}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('start_date')}</label>
             <input
               type="date"
               value={filters.startDate}
@@ -421,7 +424,7 @@ const IncomeExpensePage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('end_date')}</label>
             <input
               type="date"
               value={filters.endDate}
@@ -430,24 +433,24 @@ const IncomeExpensePage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('type')}</label>
             <select
               value={filters.type}
               onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as any }))}
               className="input-field"
             >
-              <option value="">All Types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
+              <option value="">{t('all_types')}</option>
+              <option value="income">{t('income')}</option>
+              <option value="expense">{t('expense')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('category')}</label>
             <input
               type="text"
               value={filters.category}
               onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-              placeholder="Filter by category"
+              placeholder={t('filter_by_category')}
               className="input-field"
             />
           </div>
@@ -464,10 +467,10 @@ const IncomeExpensePage: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                  {selectedEntries.size} {selectedEntries.size === 1 ? 'entry' : 'entries'} selected
+                  {selectedEntries.size} {selectedEntries.size === 1 ? t('entry') : t('entries')} {t('selected')}
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400">
-                  This action cannot be undone
+                  {t('this_action_cannot_be_undone')}
                 </p>
               </div>
             </div>
@@ -476,7 +479,7 @@ const IncomeExpensePage: React.FC = () => {
                 onClick={() => setSelectedEntries(new Set())}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={handleBulkDelete}
@@ -486,12 +489,12 @@ const IncomeExpensePage: React.FC = () => {
                 {isDeleting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    <span>Deleting...</span>
+                    <span>{t('deleting')}</span>
                   </>
                 ) : (
                   <>
                     <TrashIcon className="h-4 w-4" />
-                    <span>Delete Selected</span>
+                    <span>{t('delete_selected')}</span>
                   </>
                 )}
               </button>
@@ -515,22 +518,22 @@ const IncomeExpensePage: React.FC = () => {
                   />
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Date
+                  {t('date')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Type
+                  {t('type')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Category
+                  {t('category')}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Description
+                  {t('description')}
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Amount
+                  {t('amount')}
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
+                  {t('actions')}
                 </th>
               </tr>
             </thead>
@@ -554,7 +557,7 @@ const IncomeExpensePage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {new Date(entry.date).toLocaleDateString('en-US', {
+                      {formatCambodianTime(entry.date, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric'
@@ -597,7 +600,7 @@ const IncomeExpensePage: React.FC = () => {
                       <button
                         onClick={() => setEditingEntry(entry)}
                         className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                        title="Edit entry"
+                        title={t('edit_entry')}
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
@@ -605,7 +608,7 @@ const IncomeExpensePage: React.FC = () => {
                         onClick={() => handleDeleteEntry(entry.id)}
                         disabled={isDeleting}
                         className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Delete entry"
+                        title={t('delete_entry')}
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
@@ -624,11 +627,11 @@ const IncomeExpensePage: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No entries found</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('no_entries_found')}</h3>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
               {filters.startDate || filters.endDate || filters.type || filters.category
-                ? 'Try adjusting your filters to see more results.'
-                : 'Get started by adding your first income or expense entry.'
+                ? t('try_adjusting_filters')
+                : t('get_started_adding_entry')
               }
             </p>
             <button
@@ -636,7 +639,7 @@ const IncomeExpensePage: React.FC = () => {
               className="btn-primary flex items-center space-x-2 mx-auto"
             >
               <PlusIcon className="h-5 w-5" />
-              <span>Add Entry</span>
+              <span>{t('add')} {t('entry')}</span>
             </button>
           </div>
         )}

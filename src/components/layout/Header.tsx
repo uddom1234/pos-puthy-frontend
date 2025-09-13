@@ -29,8 +29,8 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed, mobi
               className="md:hidden xl:block p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
               title={
                 window.innerWidth < 768 
-                  ? (mobileMenuOpen ? 'Close menu' : 'Open menu')
-                  : (sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar')
+                  ? (mobileMenuOpen ? t('close_menu') : t('open_menu'))
+                  : (sidebarCollapsed ? t('show_sidebar') : t('hide_sidebar'))
               }
             >
               <Bars3Icon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 dark:text-gray-300" />
@@ -73,7 +73,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sidebarCollapsed, mobi
                 {t('confirm')} {t('logout')}
               </h3>
               <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Are you sure you want to sign out? You will need to log in again to access the system.
+                {t('logout_confirm_message')}
               </p>
               <div className="flex space-x-3">
                 <button

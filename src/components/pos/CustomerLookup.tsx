@@ -92,15 +92,15 @@ const CustomerLookup: React.FC<CustomerLookupProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center bg-black/50 p-0 sm:p-6">
-      <div className="bg-white w-full h-full sm:h-auto sm:rounded-2xl sm:max-w-lg md:max-w-2xl overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-5 border-b sticky top-0 bg-white">
-          <h2 className="text-2xl font-semibold tracking-tight">Customer Lookup</h2>
+      <div className="bg-white dark:bg-gray-800 w-full h-full sm:h-auto sm:rounded-2xl sm:max-w-lg md:max-w-2xl overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-5 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+          <h2 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Customer Lookup</h2>
           <button
             onClick={() => {
               onClose();
               resetForm();
             }}
-            className="p-3 hover:bg-gray-100 rounded-full"
+            className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400"
             aria-label="Close"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -112,11 +112,11 @@ const CustomerLookup: React.FC<CustomerLookupProps> = ({
             <>
               {/* Search Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Search Customer</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Search Customer</h3>
                 <div className="flex gap-3">
                   <button
                     className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                      searchType === 'phone' ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-300 hover:bg-gray-50'
+                      searchType === 'phone' ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                     }`}
                     onClick={() => setSearchType('phone')}
                   >
@@ -124,7 +124,7 @@ const CustomerLookup: React.FC<CustomerLookupProps> = ({
                   </button>
                   <button
                     className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                      searchType === 'memberCard' ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-300 hover:bg-gray-50'
+                      searchType === 'memberCard' ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                     }`}
                     onClick={() => setSearchType('memberCard')}
                   >
@@ -137,7 +137,7 @@ const CustomerLookup: React.FC<CustomerLookupProps> = ({
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
                     placeholder={searchType === 'phone' ? 'Enter phone number' : 'Enter member card id'}
-                    className="input-field flex-1 text-base py-3 text-gray-900 placeholder-gray-400"
+                    className="input-field flex-1 text-base py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     autoFocus
                   />
@@ -150,14 +150,14 @@ const CustomerLookup: React.FC<CustomerLookupProps> = ({
                     <MagnifyingGlassIcon className="h-5 w-5 sm:ml-2 inline" />
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">Search by exact phone or member card. You can create a new customer if not found.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Search by exact phone or member card. You can create a new customer if not found.</p>
               </div>
 
               {/* Search Results */}
               {foundCustomer && (
-                <div className="border border-green-200 bg-green-50 rounded-xl p-4 sm:p-5">
-                  <h4 className="font-semibold text-green-900 mb-3">Customer Found</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-green-900">
+                <div className="border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 rounded-xl p-4 sm:p-5">
+                  <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3">Customer Found</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-green-900 dark:text-green-100">
                     <p><span className="font-medium">Name:</span> {foundCustomer.name || '-'}</p>
                     <p><span className="font-medium">Phone:</span> {foundCustomer.phone}</p>
                     {foundCustomer.memberCard && (
@@ -176,13 +176,13 @@ const CustomerLookup: React.FC<CustomerLookupProps> = ({
 
               {/* Error Message */}
               {error && (
-                <div className="border border-red-200 bg-red-50 rounded-lg p-4">
-                  <p className="text-red-800">{error}</p>
+                <div className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+                  <p className="text-red-800 dark:text-red-200">{error}</p>
                 </div>
               )}
 
               {/* Create New Customer Button */}
-              <div className="border-t pt-4">
+              <div className="border-t dark:border-gray-700 pt-4">
                 <button
                   onClick={() => setShowCreateForm(true)}
                   className="w-full btn-outline flex items-center justify-center space-x-2 py-3"
@@ -195,55 +195,55 @@ const CustomerLookup: React.FC<CustomerLookupProps> = ({
           ) : (
             /* Create Customer Form */
             <div>
-              <h3 className="text-lg font-semibold mb-4">Create New Customer</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Create New Customer</h3>
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Name *
                   </label>
                   <input
                     type="text"
                     value={newCustomer.name}
                     onChange={(e) => setNewCustomer(prev => ({ ...prev, name: e.target.value }))}
-                    className="input-field text-base py-3"
+                    className="input-field text-base py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                     placeholder="John Doe"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Phone *
                   </label>
                   <input
                     type="tel"
                     value={newCustomer.phone}
                     onChange={(e) => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
-                    className="input-field text-base py-3"
+                    className="input-field text-base py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                     placeholder="+1234567890"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Member Card (Optional)
                   </label>
                   <input
                     type="text"
                     value={newCustomer.memberCard}
                     onChange={(e) => setNewCustomer(prev => ({ ...prev, memberCard: e.target.value }))}
-                    className="input-field text-base py-3"
+                    className="input-field text-base py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                     placeholder="MEMBER001"
                   />
                 </div>
 
                 {error && (
-                  <div className="border border-red-200 bg-red-50 rounded-lg p-4">
-                    <p className="text-red-800">{error}</p>
+                  <div className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+                    <p className="text-red-800 dark:text-red-200">{error}</p>
                   </div>
                 )}
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowCreateForm(false)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-100"
+                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                   >
                     Back
                   </button>

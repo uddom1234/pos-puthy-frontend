@@ -5,6 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { useLanguage, languageNames, Language } from '../../contexts/LanguageContext';
 import { SunIcon, MoonIcon, GlobeAltIcon, CogIcon } from '@heroicons/react/24/outline';
+import NumberInput from '../common/NumberInput';
 
 const defaultField: DynamicField = {
   key: '',
@@ -84,26 +85,26 @@ const Settings: React.FC = () => {
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Options</span>
-          <button onClick={addOption} className="btn-outline text-sm">Add option</button>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('field_options')}</span>
+          <button onClick={addOption} className="btn-outline text-sm">{t('add_option')}</button>
         </div>
-        {options.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">No options yet</div>}
+        {options.length === 0 && <div className="text-sm text-gray-500 dark:text-gray-400">{t('no_options_yet')}</div>}
         {options.map((opt, oi) => (
           <div key={oi} className="grid grid-cols-2 gap-2">
             <input
               className="input-field bg-white dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-500"
-              placeholder="Label"
+              placeholder={t('label')}
               value={opt.label}
               onChange={(e) => updateOption(oi, 'label', e.target.value)}
             />
             <div className="flex space-x-2">
               <input
                 className="input-field flex-1 bg-white dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-500"
-                placeholder="Value"
+                placeholder={t('value')}
                 value={opt.value}
                 onChange={(e) => updateOption(oi, 'value', e.target.value)}
               />
-              <button onClick={() => removeOption(oi)} className="text-red-600 dark:text-red-400 text-sm">Remove</button>
+              <button onClick={() => removeOption(oi)} className="text-red-600 dark:text-red-400 text-sm">{t('remove')}</button>
             </div>
           </div>
         ))}
@@ -115,7 +116,7 @@ const Settings: React.FC = () => {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t('settings')}</h1>
-        <div className="text-sm text-gray-500 dark:text-gray-400">Manage system preferences</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">{t('manage_system_preferences')}</div>
       </div>
 
       {/* Appearance & General Settings */}
@@ -153,7 +154,7 @@ const Settings: React.FC = () => {
               </button>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Toggle between light and dark themes
+              {t('toggle_theme_description')}
             </p>
           </div>
 
@@ -177,7 +178,7 @@ const Settings: React.FC = () => {
               ))}
             </select>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Choose your preferred language
+              {t('choose_language_description')}
             </p>
           </div>
 
@@ -185,32 +186,32 @@ const Settings: React.FC = () => {
           <div className="space-y-3 lg:col-span-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Currency Rate (USD→KHR)</label>
-                <input
-                  type="number"
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('currency_rate')}</label>
+                <NumberInput
+                  value={currencyRate}
+                  onChange={(value) => setCurrencyRate(value || 0)}
                   min={0}
                   step={1}
-                  value={currencyRate}
-                  onChange={(e) => setCurrencyRate(Number(e.target.value) || 0)}
                   className="input-field bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                  allowDecimals={false}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400">Common values: 4100, 4150</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('common_values')}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">WiFi Info</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('wifi_info')}</label>
                 <input
                   value={wifiInfo}
                   onChange={(e) => setWifiInfo(e.target.value)}
-                  placeholder="SSID / Password"
+                  placeholder={t('wifi_info_description')}
                   className="input-field bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone_number')}</label>
                 <input
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="012 345 678"
+                  placeholder={t('phone_number_description')}
                   className="input-field bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                 />
               </div>
@@ -222,21 +223,21 @@ const Settings: React.FC = () => {
       {/* Dynamic Fields Settings */}
       <div className="card p-6 bg-white dark:bg-gray-800">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Dynamic Fields</h2>
-          <button onClick={addField} className="btn-secondary">Add Field</button>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('order_fields')}</h2>
+          <button onClick={addField} className="btn-secondary">{t('add_field')}</button>
         </div>
 
         {loading ? (
-          <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+          <div className="text-gray-500 dark:text-gray-400">{t('loading')}</div>
         ) : schema.length === 0 ? (
-          <div className="text-gray-500 dark:text-gray-400">No fields configured</div>
+          <div className="text-gray-500 dark:text-gray-400">{t('no_fields_configured')}</div>
         ) : (
           <div className="space-y-4">
             {schema.map((field, index) => (
               <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Label</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('label')}</label>
                     <input
                       className="input-field bg-white dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-500"
                       value={field.label}
@@ -244,16 +245,16 @@ const Settings: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Key</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('key')}</label>
                     <input
                       className="input-field bg-white dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-500"
-                      placeholder="auto from label if empty"
+                      placeholder={t('auto_from_label')}
                       value={field.key}
                       onChange={(e) => updateField(index, { key: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('type')}</label>
                     <select
                       className="input-field bg-white dark:bg-gray-600 text-gray-900 dark:text-white border-gray-300 dark:border-gray-500"
                       value={field.type}
@@ -265,7 +266,7 @@ const Settings: React.FC = () => {
                     </select>
                   </div>
                   <div className="flex items-end">
-                    <button onClick={() => removeField(index)} className="text-red-600 dark:text-red-400">Remove</button>
+                    <button onClick={() => removeField(index)} className="text-red-600 dark:text-red-400">{t('remove')}</button>
                   </div>
                 </div>
                 <div className="mt-4">{renderOptionsEditor(field, index)}</div>
@@ -278,7 +279,7 @@ const Settings: React.FC = () => {
 
         <div className="mt-6 flex justify-end">
           <button disabled={saving} onClick={save} className="btn-primary disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Schema'}
+            {saving ? t('saving') : t('save_schema')}
           </button>
         </div>
       </div>

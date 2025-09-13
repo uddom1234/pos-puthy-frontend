@@ -1,6 +1,7 @@
 import { Order, Customer } from '../services/api';
 import logo from '../images/logo.PNG';
 import { readAppSettings } from '../contexts/AppSettingsContext';
+import { formatCambodianTime } from './timeUtils';
 
 interface PrintExtras {
   paymentMethod?: 'cash' | 'qr';
@@ -13,7 +14,7 @@ export function printOrderReceipt(order: Order, extras: PrintExtras = {}) {
     const win = window.open('', '_blank', 'width=300,height=600');
     if (!win) return;
 
-    const dateStr = new Date(order.createdAt || new Date().toISOString()).toLocaleString();
+    const dateStr = formatCambodianTime(order.createdAt || new Date().toISOString());
     const items = order.items || [];
     const settings = readAppSettings();
     const rate = Number(settings.currencyRate) || 4100;

@@ -3,15 +3,18 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { productsAPI, Product, schemasAPI, DynamicField, categoriesAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { PlusIcon, PencilIcon, ExclamationTriangleIcon, TrashIcon, TagIcon } from '@heroicons/react/24/outline';
 import OptionSchemaBuilder, { OptionField } from './OptionSchemaBuilder';
 import NumberInput from '../common/NumberInput';
 import ImageUploader from '../common/ImageUploader';
+import ImagePreview from '../common/ImagePreview';
 import CategoriesModal from './CategoriesModal';
 import { TableSkeleton, FilterSkeleton } from '../common/SkeletonLoader';
 
 const Inventory: React.FC = () => {
   const { isAdmin, user } = useAuth();
+  const { t } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -142,22 +145,22 @@ const Inventory: React.FC = () => {
 
     return (
       <div className="modal-overlay">
-        <div className="modal-content max-w-4xl w-full flex flex-col">
+        <div className="modal-content max-w-4xl w-full flex flex-col bg-white dark:bg-gray-800">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-t-xl">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {product ? 'Edit Product' : 'Add New Product'}
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {product ? 'Update product details and settings' : 'Create a new product for your inventory'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onCancel}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 title="Close"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,22 +183,22 @@ const Inventory: React.FC = () => {
               <Form id="product-form" className="flex-1 overflow-y-auto">
                 <div className="p-6 space-y-6">
               {/* Basic Information Section */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Basic Information
+                  {t('basic_information')}
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {!hiddenCore.includes('name') && <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('product_name')} *</label>
                     <Field
                       type="text"
                       name="name"
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        errors.name && touched.name ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                        errors.name && touched.name ? 'border-red-500' : ''
                       }`}
                       placeholder="Enter product name"
                     />
@@ -203,12 +206,12 @@ const Inventory: React.FC = () => {
                   </div>}
                   
                   {!hiddenCore.includes('category') && <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('category')} *</label>
                     <Field
                       as="select"
                       name="category"
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        errors.category && touched.category ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                        errors.category && touched.category ? 'border-red-500' : ''
                       }`}
                     >
                       {categories.map(c => (
@@ -221,16 +224,16 @@ const Inventory: React.FC = () => {
               </div>
             
               {/* Pricing Section */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                   Pricing
                 </h3>
                 
                 {!hiddenCore.includes('price') && <div className="max-w-xs">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('price')} ($) *</label>
                   <Field name="price">
                     {({ field, meta }: { field: any; meta: any }) => (
                       <NumberInput
@@ -240,8 +243,8 @@ const Inventory: React.FC = () => {
                         min={0}
                         step={0.01}
                         allowDecimals={true}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                          meta.error && meta.touched ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                          meta.error && meta.touched ? 'border-red-500' : ''
                         }`}
                       />
                     )}
@@ -251,8 +254,8 @@ const Inventory: React.FC = () => {
               </div>
 
               {/* Stock Management Section */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                   <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
@@ -260,7 +263,7 @@ const Inventory: React.FC = () => {
                 </h3>
                 
                 {/* Stock Management Toggle */}
-                <div className="flex items-start space-x-4 p-4 bg-white border border-gray-200 rounded-lg">
+                <div className="flex items-start space-x-4 p-4 bg-white border dark:border-gray-700 dark:bg-gray-800 border-gray-200 rounded-lg">
                   <Field
                     type="checkbox"
                     name="hasStock"
@@ -280,7 +283,7 @@ const Inventory: React.FC = () => {
                 {values.hasStock && !hiddenCore.includes('stock') && (
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Current Stock *</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('stock')} *</label>
                       <Field name="stock">
                         {({ field, meta }: { field: any; meta: any }) => (
                           <NumberInput
@@ -289,8 +292,8 @@ const Inventory: React.FC = () => {
                             placeholder="0"
                             min={0}
                             allowDecimals={false}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                              meta.error && meta.touched ? 'border-red-500' : 'border-gray-300'
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                              meta.error && meta.touched ? 'border-red-500' : ''
                             }`}
                           />
                         )}
@@ -298,7 +301,7 @@ const Inventory: React.FC = () => {
                       <ErrorMessage name="stock" component="div" className="text-red-500 text-sm mt-1" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Low Stock Threshold *</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('low_stock_threshold_label')} *</label>
                       <Field name="lowStockThreshold">
                         {({ field, meta }: { field: any; meta: any }) => (
                           <NumberInput
@@ -307,8 +310,8 @@ const Inventory: React.FC = () => {
                             placeholder="10"
                             min={0}
                             allowDecimals={false}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                              meta.error && meta.touched ? 'border-red-500' : 'border-gray-300'
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                              meta.error && meta.touched ? 'border-red-500' : ''
                             }`}
                           />
                         )}
@@ -321,8 +324,8 @@ const Inventory: React.FC = () => {
             
               {/* Description Section */}
               {!hiddenCore.includes('description') && (
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                     <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -330,12 +333,12 @@ const Inventory: React.FC = () => {
                   </h3>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Description</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('product_description')}</label>
                     <Field
                       as="textarea"
                       name="description"
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none ${
-                        errors.description && touched.description ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                        errors.description && touched.description ? 'border-red-500' : ''
                       }`}
                       rows={4}
                       placeholder="Enter product description (optional)"
@@ -346,12 +349,12 @@ const Inventory: React.FC = () => {
               )}
 
               {/* Image Section */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                   <svg className="w-5 h-5 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4-4a2 2 0 013 0l4 4m1-1l1-1m-4-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  Product Image
+                  {t('product_image')}
                 </h3>
                 <ImageUploader
                   value={(values as any).imageUrl}
@@ -361,8 +364,8 @@ const Inventory: React.FC = () => {
 
                   {/* Dynamic fields */}
                   {productSchema.length > 0 && (
-                    <div className="bg-gray-50 rounded-lg p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                         <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
@@ -371,24 +374,24 @@ const Inventory: React.FC = () => {
                       <div className="space-y-4">
                         {productSchema.map((f) => (
                           <div key={f.key}>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">{f.label}</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{f.label}</label>
                             {f.type === 'text' || f.type === 'number' ? (
                               <input
                                 type={f.type}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 value={values.metadata?.[f.key] ?? ''}
                                 onChange={(e) => setFieldValue('metadata', { ...(values.metadata||{}), [f.key]: f.type==='number'? Number(e.target.value): e.target.value })}
                               />
                             ) : f.type === 'date' ? (
                               <input
                                 type="date"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 value={values.metadata?.[f.key] ?? ''}
                                 onChange={(e) => setFieldValue('metadata', { ...(values.metadata||{}), [f.key]: e.target.value })}
                               />
                             ) : f.type === 'select' ? (
                               <select
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 value={values.metadata?.[f.key] ?? ''}
                                 onChange={(e) => setFieldValue('metadata', { ...(values.metadata||{}), [f.key]: e.target.value })}
                               >
@@ -413,8 +416,8 @@ const Inventory: React.FC = () => {
                   )}
 
                   {/* Option schema builder */}
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                       <svg className="w-5 h-5 mr-2 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -446,7 +449,7 @@ const Inventory: React.FC = () => {
                 form="product-form"
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
               >
-                {product ? 'Update Product' : 'Add Product'}
+                {product ? t('edit_product_modal') : t('add_product_modal')}
               </button>
             </div>
           </div>
@@ -543,7 +546,7 @@ const Inventory: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Inventory Management</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t('inventory')}</h1>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           {isAdmin && (
             <button
@@ -554,7 +557,7 @@ const Inventory: React.FC = () => {
               className="btn-outline flex items-center space-x-2 w-full sm:w-auto justify-center"
             >
               <TagIcon className="h-5 w-5" />
-              <span>Manage Categories</span>
+              <span>{t('manage_categories')}</span>
             </button>
           )}
           {isAdmin && (
@@ -563,7 +566,7 @@ const Inventory: React.FC = () => {
               className="btn-primary flex items-center space-x-2 w-full sm:w-auto justify-center"
             >
               <PlusIcon className="h-5 w-5" />
-              <span>Add Product</span>
+              <span>{t('add_product')}</span>
             </button>
           )}
         </div>
@@ -593,28 +596,31 @@ const Inventory: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Product
+                  Image
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Category
+                  {t('product')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Price
+                  {t('category')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Stock
+                  {t('price')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Status
+                  {t('stock')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {t('status')}
                 </th>
                 {productSchema.length > 0 && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Custom
+                    {t('custom')}
                   </th>
                 )}
                 {isAdmin && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Actions
+                    {t('actions')}
                   </th>
                 )}
               </tr>
@@ -622,6 +628,29 @@ const Inventory: React.FC = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {products.map((product) => (
                 <tr key={product.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <ImagePreview
+                      src={product.imageUrl || ''}
+                      alt={product.name}
+                      className="inline-block"
+                    >
+                      {product.imageUrl ? (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+                          <img 
+                            src={product.imageUrl} 
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary-50 to-primary-200 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">
+                            {product.category === 'coffee' ? '☕' : '🍽️'}
+                          </span>
+                        </div>
+                      )}
+                    </ImagePreview>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">{product.name}</div>
@@ -644,16 +673,16 @@ const Inventory: React.FC = () => {
                       product.stock <= product.lowStockThreshold ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
                           <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
-                          Low Stock
+                          {t('low_stock')}
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                          In Stock
+                          {t('in_stock')}
                         </span>
                       )
                     ) : (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                        Made-to-Order
+                        {t('made_to_order')}
                       </span>
                     )}
                   </td>

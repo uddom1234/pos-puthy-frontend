@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ImageUploaderProps {
   value?: string;
@@ -7,6 +8,7 @@ interface ImageUploaderProps {
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, label }) => {
+  const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +103,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange, label })
         {/* Actions & Help */}
         <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={handleSelect} className="btn-primary">{value ? 'Change Image' : 'Upload Image'}</button>
+            <button type="button" onClick={handleSelect} className="btn-primary">{value ? t('change_image') : t('upload_image')}</button>
             {value && (
               <button type="button" className="btn-outline" onClick={() => onChange(undefined)}>Remove</button>
             )}

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Order } from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
+import NumberInput from '../common/NumberInput';
 
 interface PaymentProcessingModalProps {
   order: Order;
@@ -12,6 +14,7 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
   onPaymentComplete,
   onCancel
 }) => {
+  const { t } = useLanguage();
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qr'>('cash');
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
@@ -43,7 +46,7 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
     <div className="modal-overlay">
       <div className="modal-content max-w-md w-full mx-4">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Process Payment</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('process_payment')}</h2>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -55,7 +58,7 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
           {/* Payment Method */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Payment Method
+              {t('payment_method')}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -69,7 +72,7 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                 <svg className="w-8 h-8 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">Cash</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('cash')}</span>
               </button>
               
               <button
@@ -83,7 +86,7 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                 <svg className="w-8 h-8 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                 </svg>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">QR Code</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{t('qr_code')}</span>
               </button>
             </div>
           </div>
@@ -91,7 +94,7 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
           {/* Discount */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Discount
+              {t('discount')}
             </label>
             <div className="flex space-x-2">
               <select
@@ -99,21 +102,21 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                 onChange={(e) => setDiscountType(e.target.value as 'fixed' | 'percentage')}
                 className="input-field"
               >
-                <option value="fixed">Fixed Amount ($)</option>
-                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">{t('fixed_amount')}</option>
+                <option value="percentage">{t('percentage')}</option>
               </select>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
+              <NumberInput
                 value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
-                className="flex-1 input-field"
+                onChange={(value) => setDiscount(value || 0)}
+                min={0}
+                step={0.01}
                 placeholder="0"
+                className="flex-1 px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                allowDecimals={true}
               />
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Discount: ${calculateDiscountAmount().toFixed(2)}
+              {t('discount')}: ${calculateDiscountAmount().toFixed(2)}
             </p>
           </div>
 
@@ -121,20 +124,20 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
           {paymentMethod === 'cash' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Cash Received
+                {t('cash_received')}
               </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
+              <NumberInput
                 value={cashReceived}
-                onChange={(e) => setCashReceived(Number(e.target.value))}
-                className="w-full input-field"
+                onChange={(value) => setCashReceived(value || 0)}
+                min={0}
+                step={0.01}
                 placeholder="0.00"
+                className="w-full px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                allowDecimals={true}
               />
               {cashReceived > 0 && cashReceived >= finalTotal && (
                 <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                  Change: ${change.toFixed(2)}
+                  {t('change')}: ${change.toFixed(2)}
                 </p>
               )}
               {cashReceived > 0 && cashReceived < finalTotal && (
@@ -148,12 +151,12 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
           {/* Order Summary */}
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-900 dark:text-white">Subtotal:</span>
+              <span className="text-gray-900 dark:text-white">{t('subtotal')}:</span>
               <span className="text-gray-900 dark:text-white">${order.total.toFixed(2)}</span>
             </div>
             {calculateDiscountAmount() > 0 && (
               <div className="flex justify-between text-sm mb-2 text-green-600 dark:text-green-400">
-                <span>Discount:</span>
+                <span>{t('discount')}:</span>
                 <span>-${calculateDiscountAmount().toFixed(2)}</span>
               </div>
             )}
@@ -169,14 +172,14 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
               onClick={onCancel}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               onClick={handleProcessPayment}
               disabled={paymentMethod === 'cash' && cashReceived < finalTotal}
               className="flex-1 px-4 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
-              Process Payment
+{t('process_payment')}
             </button>
           </div>
         </div>

@@ -23,7 +23,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, values, onChange }) =
           case 'number':
             return (
               <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
                 <input
                   type={field.type}
                   className="input-field"
@@ -35,7 +35,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, values, onChange }) =
           case 'date':
             return (
               <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
                 <input
                   type="date"
                   className="input-field"
@@ -47,7 +47,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, values, onChange }) =
           case 'select':
             return (
               <div key={key}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
                 <select className="input-field" value={val} onChange={(e) => update(key, e.target.value)}>
                   <option value="">Select...</option>
                   {(field.options || []).map((opt) => (

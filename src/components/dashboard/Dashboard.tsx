@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { reportsAPI, productsAPI, Product } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { formatCambodianTime } from '../../utils/timeUtils';
 import {
   CurrencyDollarIcon,
   ShoppingBagIcon,
@@ -123,7 +124,7 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard')}</h1>
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          {new Date().toLocaleDateString('en-US', {
+          {formatCambodianTime(new Date(), {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -141,13 +142,13 @@ const Dashboard: React.FC = () => {
           color="green"
         />
         <StatCard
-          title="Today's Transactions"
+          title={t('todays_transactions')}
           value={dailySummary?.transactionCount.toString() || '0'}
           icon={ShoppingBagIcon}
           color="blue"
         />
         <StatCard
-          title={"Today's " + t('orders')}
+          title={t('todays_orders')}
           value={(dailySummary?.orderCount ?? 0).toString()}
           icon={ShoppingBagIcon}
           color="blue"
@@ -169,29 +170,29 @@ const Dashboard: React.FC = () => {
       {/* Monthly Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Summary</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('monthly_summary')}</h3>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600">Total Revenue:</span>
+              <span className="text-gray-600 dark:text-gray-400">{t('total_revenue_label')}</span>
               <span className="font-semibold">${monthlySummary?.totalRevenue.toFixed(2) || '0.00'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Total Expenses:</span>
+              <span className="text-gray-600 dark:text-gray-400">{t('total_expenses_label')}</span>
               <span className="font-semibold text-red-600">-${monthlySummary?.totalExpenses.toFixed(2) || '0.00'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Orders:</span>
+              <span className="text-gray-600 dark:text-gray-400">{t('orders_label')}</span>
               <span className="font-semibold">{monthlySummary?.orderCount ?? 0}</span>
             </div>
             <div className="flex justify-between border-t pt-3">
-              <span className="text-gray-900 font-semibold">Net Profit:</span>
+              <span className="text-gray-900 dark:text-gray-100 font-semibold">{t('net_profit_label')}</span>
               <span className="font-bold text-green-600">${monthlySummary?.netProfit.toFixed(2) || '0.00'}</span>
             </div>
           </div>
         </div>
 
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Low Stock Alerts</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('low_stock_alerts_title')}</h3>
           {lowStockProducts.length > 0 ? (
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {lowStockProducts.map((product) => (
@@ -201,26 +202,26 @@ const Dashboard: React.FC = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400">{product.category}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">{product.stock} left</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Min: {product.lowStockThreshold}</p>
+                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">{product.stock} {t('left')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('min')}: {product.lowStockThreshold}</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No low stock alerts</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">{t('no_low_stock_alerts')}</p>
           )}
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('quick_actions_title')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <a href="/pos" className="btn-primary text-center py-3">New Order</a>
-          <a href="/inventory" className="btn-secondary text-center py-3">Add Product</a>
-          <a href="/reports" className="btn-outline text-center py-3">View Reports</a>
-          <button onClick={fetchDashboardData} className="btn-outline text-center py-3">Refresh</button>
+          <a href="/pos" className="btn-primary text-center py-3">{t('new_order')}</a>
+          <a href="/inventory" className="btn-secondary text-center py-3">{t('add_product')}</a>
+          <a href="/reports" className="btn-outline text-center py-3">{t('view_reports')}</a>
+          <button onClick={fetchDashboardData} className="btn-outline text-center py-3">{t('refresh')}</button>
         </div>
       </div>
     </div>

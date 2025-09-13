@@ -3,6 +3,7 @@ import { customersAPI, Customer } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { PlusIcon, MagnifyingGlassIcon, GiftIcon } from '@heroicons/react/24/outline';
 import { TableSkeleton, CardSkeleton } from '../common/SkeletonLoader';
+import NumberInput from '../common/NumberInput';
 
 const Customers: React.FC = () => {
   const { t } = useLanguage();
@@ -143,13 +144,13 @@ const Customers: React.FC = () => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points</label>
-              <input
-                type="number"
-                min="0"
-                max={operation === 'subtract' ? customer.loyaltyPoints : undefined}
+              <NumberInput
                 value={points}
-                onChange={(e) => setPoints(Number(e.target.value))}
+                onChange={(value) => setPoints(value || 0)}
+                min={0}
+                max={operation === 'subtract' ? customer.loyaltyPoints : undefined}
                 className="input-field"
+                allowDecimals={false}
                 required
               />
             </div>
@@ -241,28 +242,28 @@ const Customers: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customer Management</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('customers')}</h1>
         <button
           onClick={() => setShowAddModal(true)}
           className="btn-primary flex items-center space-x-2"
         >
           <PlusIcon className="h-5 w-5" />
-          <span>Add Customer</span>
+          <span>{t('add_customer')}</span>
         </button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card p-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300">Total Customers</h3>
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300">{t('total_customers')}</h3>
           <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{customers.length}</p>
         </div>
         <div className="card p-6 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
-          <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-300">Total Loyalty Points</h3>
+          <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-300">{t('total_loyalty_points')}</h3>
           <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{getTotalLoyaltyPoints().toLocaleString()}</p>
         </div>
         <div className="card p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-          <h3 className="text-lg font-semibold text-green-900 dark:text-green-300">Avg Points per Customer</h3>
+          <h3 className="text-lg font-semibold text-green-900 dark:text-green-300">{t('avg_points_per_customer')}</h3>
           <p className="text-3xl font-bold text-green-600 dark:text-green-400">
             {customers.length > 0 ? Math.round(getTotalLoyaltyPoints() / customers.length) : 0}
           </p>
@@ -274,7 +275,7 @@ const Customers: React.FC = () => {
         <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
-          placeholder="Search customers..."
+          placeholder={t('search_customers')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="input-field w-full pl-10 pr-4 py-2"
@@ -288,19 +289,19 @@ const Customers: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Customer
+                  {t('customer')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Phone
+                  {t('phone')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Member Card
+                  {t('member_card')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Loyalty Points
+                  {t('loyalty_points')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Actions
+                  {t('actions')}
                 </th>
               </tr>
             </thead>
@@ -332,7 +333,7 @@ const Customers: React.FC = () => {
                       }}
                       className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
                     >
-                      Manage Points
+                      {t('manage_points')}
                     </button>
                   </td>
                 </tr>

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Customer } from '../../services/api';
-import { XMarkIcon, BanknotesIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { XMarkIcon, BanknotesIcon, QrCodeIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import NumberInput from '../common/NumberInput';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void;
   onPayment: (paymentData: {
     paymentMethod: 'cash' | 'qr';
     discount: number;
@@ -19,10 +22,12 @@ interface PaymentModalProps {
 const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
+  onBack,
   onPayment,
   total,
   customer,
 }) => {
+  const { t } = useLanguage();
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qr'>('cash');
   const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>('fixed');
   const [discountValue, setDiscountValue] = useState<number>(0);
@@ -62,8 +67,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onPayment({
       paymentMethod,
       discount: calculateDiscount(),
-      loyaltyPointsUsed: loyaltyPointsUsed || undefined,
-      cashReceived: paymentMethod === 'cash' ? cashReceived : undefined,
+      loyaltyPointsUsed: loyaltyPointsUsed || 0,
+      cashReceived: paymentMethod === 'cash' ? cashReceived : 0,
       status: 'paid',
     });
   };
@@ -76,7 +81,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     <div className="modal-overlay">
       <div className="modal-content max-w-md w-full mx-4">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Process Payment</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('process_payment')}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400"
@@ -89,27 +94,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Payment Method + Pay Later */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Payment Method</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t('payment_method')}</h3>
               <button
                 type="button"
                 onClick={() =>
                   onPayment({
                     paymentMethod,
                     discount: calculateDiscount(),
-                    loyaltyPointsUsed: loyaltyPointsUsed || undefined,
-                    cashReceived: undefined,
+                    loyaltyPointsUsed: loyaltyPointsUsed || 0,
+                    cashReceived: 0,
                     status: 'unpaid',
                   })
                 }
                 className="px-3 py-1.5 border border-yellow-300 dark:border-yellow-600 text-yellow-800 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-sm"
               >
-                Pay Later
+{t('pay_later')}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { method: 'cash' as const, icon: BanknotesIcon, label: 'Cash' },
-                { method: 'qr' as const, icon: QrCodeIcon, label: 'QR Code' },
+                { method: 'cash' as const, icon: BanknotesIcon, label: t('cash') },
+                { method: 'qr' as const, icon: QrCodeIcon, label: t('qr_code') },
               ].map(({ method, icon: Icon, label }) => (
                 <button
                   key={method}
@@ -129,29 +134,29 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Discount */}
           <div>
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Discount</h3>
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">{t('discount')}</h3>
             <div className="space-y-3">
               <div className="flex space-x-2">
                 <select
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value as any)}
-                  className="input-field"
+                  className="input-field flex-shrink-0 w-40"
                 >
-                  <option value="fixed">Fixed Amount ($)</option>
-                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">{t('fixed_amount')}</option>
+                  <option value="percentage">{t('percentage')}</option>
                 </select>
-                <input
-                  type="number"
-                  min="0"
-                  max={discountType === 'percentage' ? 100 : total}
+                <NumberInput
                   value={discountValue}
-                  onChange={(e) => setDiscountValue(Number(e.target.value))}
-                  className="input-field"
+                  onChange={(value) => setDiscountValue(value || 0)}
+                  min={0}
+                  max={discountType === 'percentage' ? 100 : total}
                   placeholder="0"
+                  className="input-field flex-1 min-w-0"
+                  allowDecimals={true}
                 />
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Discount: ${calculateDiscount().toFixed(2)}
+                {t('discount')}: ${calculateDiscount().toFixed(2)}
               </p>
             </div>
           </div>
@@ -159,19 +164,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Loyalty Points */}
           {customer && customer.loyaltyPoints > 0 && (
             <div>
-              <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Use Loyalty Points</h3>
+              <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">{t('use_loyalty_points')}</h3>
               <div className="space-y-2">
-                <input
-                  type="number"
-                  min="0"
-                  max={maxLoyaltyPoints}
+                <NumberInput
                   value={loyaltyPointsUsed}
-                  onChange={(e) => setLoyaltyPointsUsed(Number(e.target.value))}
-                  className="input-field"
+                  onChange={(value) => setLoyaltyPointsUsed(value || 0)}
+                  min={0}
+                  max={maxLoyaltyPoints}
                   placeholder="0"
+                  className="input-field w-full"
+                  allowDecimals={false}
                 />
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Available: {customer.loyaltyPoints} points (1 point = $1)
+                  {t('available')}: {customer.loyaltyPoints} {t('points')} ({t('point_equals_dollar')})
                 </p>
               </div>
             </div>
@@ -182,19 +187,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Cash Received */}
           {paymentMethod === 'cash' && (
             <div>
-              <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Cash Received</h3>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
+              <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">{t('cash_received')}</h3>
+              <NumberInput
                 value={cashReceived}
-                onChange={(e) => setCashReceived(Number(e.target.value))}
-                className="input-field"
+                onChange={(value) => setCashReceived(value || 0)}
+                min={0}
                 placeholder="0.00"
+                className="input-field w-full"
+                allowDecimals={true}
+                step={0.01}
               />
               {cashReceived > 0 && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  Change: ${getChange().toFixed(2)}
+                  {t('change')}: ${getChange().toFixed(2)}
                 </p>
               )}
             </div>
@@ -205,18 +210,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Payment Summary */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-900 dark:text-white">Subtotal:</span>
+              <span className="text-gray-900 dark:text-white">{t('subtotal')}:</span>
               <span className="text-gray-900 dark:text-white">${total.toFixed(2)}</span>
             </div>
             {calculateDiscount() > 0 && (
               <div className="flex justify-between text-red-600 dark:text-red-400">
-                <span>Discount:</span>
+                <span>{t('discount')}:</span>
                 <span>-${calculateDiscount().toFixed(2)}</span>
               </div>
             )}
             {loyaltyPointsUsed > 0 && (
               <div className="flex justify-between text-blue-600 dark:text-blue-400">
-                <span>Loyalty Points:</span>
+                <span>{t('loyalty_points')}:</span>
                 <span>-${loyaltyPointsUsed.toFixed(2)}</span>
               </div>
             )}
@@ -230,16 +235,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex space-x-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
           >
-            Cancel
+{t('cancel')}
           </button>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center space-x-2"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+              <span>{t('back')}</span>
+            </button>
+          )}
           <button
             onClick={handlePayment}
             disabled={!canProcessPayment()}
             className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Process Payment
+{t('process_payment')}
           </button>
         </div>
       </div>

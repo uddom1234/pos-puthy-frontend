@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Order, DynamicField } from '../../services/api';
+import NumberInput from '../common/NumberInput';
 
 interface EditOrderModalProps {
   order: Order;
@@ -197,24 +198,24 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
-                      <input
-                        type="number"
-                        min="1"
+                      <NumberInput
                         value={item.quantity}
-                        onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                        onChange={(value) => updateItem(index, 'quantity', value || 1)}
+                        min={1}
                         className="input-field"
+                        allowDecimals={false}
                       />
                     </div>
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price ($)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
+                      <NumberInput
                         value={item.price}
-                        onChange={(e) => updateItem(index, 'price', Number(e.target.value))}
+                        onChange={(value) => updateItem(index, 'price', value || 0)}
+                        min={0}
+                        step={0.01}
                         className="input-field"
+                        allowDecimals={true}
                       />
                     </div>
                     
