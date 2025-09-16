@@ -1,5 +1,4 @@
 import React from 'react';
-import logo from '../../images/logo.PNG';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -13,6 +12,8 @@ import {
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
+
+const logo = 'https://pu-thy.s3.us-east-005.backblazeb2.com/logo.PNG';
 
 interface SidebarProps {
   collapsed?: boolean;

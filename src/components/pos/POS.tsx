@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { productsAPI, customersAPI, transactionsAPI, ordersAPI, schemasAPI, categoriesAPI, Product, Customer, DynamicField, Order } from '../../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { productsAPI, customersAPI, transactionsAPI, ordersAPI, schemasAPI, categoriesAPI, publicPreviewAPI, Product, Customer, DynamicField, Order } from '../../services/api';
 import { readAppSettings } from '../../contexts/AppSettingsContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { printOrderReceipt } from '../../utils/printReceipt';
@@ -9,6 +9,7 @@ import Cart from './Cart';
 import PaymentModal from './PaymentModal';
 import CustomerLookup from './CustomerLookup';
 import FloatingCartButton from './FloatingCartButton';
+import QrCodeModal from './QrCodeModal';
 import {
   MagnifyingGlassIcon,
   UserIcon,
@@ -48,17 +49,71 @@ const POS: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [orderSchema, setOrderSchema] = useState<DynamicField[]>([]);
   const [orderMetadata, setOrderMetadata] = useState<Record<string, any>>({});
+  const [showQr, setShowQr] = useState(false);
 
   // Cart persistence
   const CART_STORAGE_KEY = 'pos_cart_items';
   const CUSTOMER_STORAGE_KEY = 'pos_selected_customer';
 
+  // Cross-tab update channel
+  const cartChannelRef = useRef<BroadcastChannel | null>(null);
+  const previewDebounceRef = useRef<any>(null);
+  const previewInFlightRef = useRef<boolean>(false);
+  const previewPendingRef = useRef<any>(null);
+
+  useEffect(() => {
+    try {
+      cartChannelRef.current = new BroadcastChannel('pos_cart_channel');
+    } catch {
+      cartChannelRef.current = null;
+    }
+    return () => {
+      try { cartChannelRef.current?.close(); } catch {}
+    };
+  }, []);
+
   const saveCartToStorage = (items: CartItem[]) => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+      cartChannelRef.current?.postMessage({ type: 'cart', items });
     } catch (error) {
       console.error('Error saving cart to localStorage:', error);
     }
+  };
+
+  const pushOrderPreviewSnapshot = (items: CartItem[], customer: Customer | null) => {
+    const payload = {
+      items: items.map(i => ({
+        id: i.id,
+        productId: i.productId,
+        productName: i.productName,
+        price: i.price,
+        quantity: i.quantity,
+        totalPrice: i.totalPrice,
+        customizations: i.customizations || null,
+      })),
+      customer: customer ? { id: customer.id, name: customer.name, phone: customer.phone } : null,
+    };
+    // Debounce to avoid flooding server on rapid updates
+    // Immediate push with simple concurrency guard to avoid flooding
+    const send = (p: any) => {
+      if (previewInFlightRef.current) {
+        previewPendingRef.current = p; // queue latest payload
+        return;
+      }
+      previewInFlightRef.current = true;
+      publicPreviewAPI.save(p).catch(() => {}).finally(() => {
+        previewInFlightRef.current = false;
+        if (previewPendingRef.current) {
+          const next = previewPendingRef.current;
+          previewPendingRef.current = null;
+          // microtask to yield
+          setTimeout(() => send(next), 0);
+        }
+      });
+    };
+    // Fire immediately
+    send(payload);
   };
 
   const loadCartFromStorage = (): CartItem[] => {
@@ -78,6 +133,7 @@ const POS: React.FC = () => {
       } else {
         localStorage.removeItem(CUSTOMER_STORAGE_KEY);
       }
+      cartChannelRef.current?.postMessage({ type: 'customer', customer });
     } catch (error) {
       console.error('Error saving customer to localStorage:', error);
     }
@@ -219,6 +275,7 @@ const POS: React.FC = () => {
       }
       
       saveCartToStorage(newCart);
+      pushOrderPreviewSnapshot(newCart, selectedCustomer);
       return newCart;
     });
   };
@@ -247,6 +304,7 @@ const POS: React.FC = () => {
         );
       }
       saveCartToStorage(newCart);
+      pushOrderPreviewSnapshot(newCart, selectedCustomer);
       return newCart;
     });
   };
@@ -255,6 +313,7 @@ const POS: React.FC = () => {
     setCartItems(prev => {
       const newCart = prev.filter(item => item.id !== itemId);
       saveCartToStorage(newCart);
+      pushOrderPreviewSnapshot(newCart, selectedCustomer);
       return newCart;
     });
   };
@@ -264,11 +323,13 @@ const POS: React.FC = () => {
     setSelectedCustomer(null);
     saveCartToStorage([]);
     saveCustomerToStorage(null);
+    pushOrderPreviewSnapshot([], null);
   };
 
   const handleCustomerSelect = (customer: Customer | null) => {
     setSelectedCustomer(customer);
     saveCustomerToStorage(customer);
+    pushOrderPreviewSnapshot(cartItems, customer);
   };
 
   const getCartTotal = () => {
@@ -376,11 +437,25 @@ const POS: React.FC = () => {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Smach Cafe POS</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center space-x-3 min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate">Smach Cafe POS</h1>
+              <button
+                onClick={() => setShowQr(true)}
+                className="ml-1 h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"
+                aria-label="Show QR"
+                title="Show QR"
+              >
+                {/* Minimal QR-like icon */}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5 text-gray-700 dark:text-gray-200" fill="currentColor">
+                  <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zM13 3h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5z"/>
+                  <path d="M13 13h4v2h-2v2h-2v-4zm6 0h2v2h-2v-2zm0 4h2v4h-2v-4zm-4 4h-2v-2h2v2zm2-2h-2v-2h2v2z"/>
+                </svg>
+              </button>
+            </div>
             
             {/* Category Filter */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto mt-2 sm:mt-0">
               {['all', ...categories].map(category => (
                 <button
                   key={category}
@@ -533,6 +608,15 @@ const POS: React.FC = () => {
           onPayment={handlePayment}
           total={getCartTotal()}
           customer={selectedCustomer}
+        />
+      )}
+
+      {/* QR Modal */}
+      {showQr && (
+        <QrCodeModal
+          isOpen={showQr}
+          onClose={() => setShowQr(false)}
+          url={'http://146.190.81.53/order-preview'}
         />
       )}
     </div>

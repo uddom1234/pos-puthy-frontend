@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Customer } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { readAppSettings } from '../../contexts/AppSettingsContext';
 import { XMarkIcon, BanknotesIcon, QrCodeIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import NumberInput from '../common/NumberInput';
 
@@ -54,11 +55,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const convertToKhr = (usdAmount: number) => {
-    return usdAmount * 4100; // Default rate, should be from settings
+    const settings = readAppSettings();
+    const rate = settings.currencyRate && settings.currencyRate > 0 ? Number(settings.currencyRate) : 4100;
+    return usdAmount * rate;
   };
 
   const convertToUsd = (khrAmount: number) => {
-    return khrAmount / 4100; // Default rate, should be from settings
+    const settings = readAppSettings();
+    const rate = settings.currencyRate && settings.currencyRate > 0 ? Number(settings.currencyRate) : 4100;
+    return khrAmount / rate;
   };
 
   const getDisplayTotal = () => {

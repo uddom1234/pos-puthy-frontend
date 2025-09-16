@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { currencyRatesAPI } from '../services/api';
+import { readAppSettings } from '../contexts/AppSettingsContext';
 
 export interface CurrencyRate {
   from_currency: string;
@@ -46,11 +47,20 @@ export const useCurrency = () => {
   };
 
   const getUsdToKhrRate = (): number => {
-    return getRate('USD', 'KHR') || 4100; // Default fallback
+    const apiRate = getRate('USD', 'KHR');
+    if (apiRate > 0) return apiRate;
+    
+    const settings = readAppSettings();
+    return settings.currencyRate && settings.currencyRate > 0 ? settings.currencyRate : 4100;
   };
 
   const getKhrToUsdRate = (): number => {
-    return getRate('KHR', 'USD') || 0.000244; // Default fallback
+    const apiRate = getRate('KHR', 'USD');
+    if (apiRate > 0) return apiRate;
+    
+    const settings = readAppSettings();
+    const usdToKhrRate = settings.currencyRate && settings.currencyRate > 0 ? settings.currencyRate : 4100;
+    return 1 / usdToKhrRate;
   };
 
   return {

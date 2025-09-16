@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Order } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { readAppSettings } from '../../contexts/AppSettingsContext';
 import NumberInput from '../common/NumberInput';
 
 interface PaymentProcessingModalProps {
@@ -32,11 +33,15 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
   const change = paymentMethod === 'cash' ? Math.max(0, cashReceived - finalTotal) : 0;
 
   const convertToKhr = (usdAmount: number) => {
-    return usdAmount * 4100; // Default rate, should be from settings
+    const settings = readAppSettings();
+    const rate = settings.currencyRate && settings.currencyRate > 0 ? Number(settings.currencyRate) : 4100;
+    return usdAmount * rate;
   };
 
   const convertToUsd = (khrAmount: number) => {
-    return khrAmount / 4100; // Default rate, should be from settings
+    const settings = readAppSettings();
+    const rate = settings.currencyRate && settings.currencyRate > 0 ? Number(settings.currencyRate) : 4100;
+    return khrAmount / rate;
   };
 
   const getDisplayTotal = () => {

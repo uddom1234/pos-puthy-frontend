@@ -1,7 +1,8 @@
 import { Order, Customer } from '../services/api';
-import logo from '../images/logo.PNG';
 import { readAppSettings } from '../contexts/AppSettingsContext';
 import { formatCambodianTime } from './timeUtils';
+
+const logo = 'https://pu-thy.s3.us-east-005.backblazeb2.com/logo.PNG';
 
 interface PrintExtras {
   paymentMethod?: 'cash' | 'qr';
@@ -19,7 +20,11 @@ export function printOrderReceipt(order: Order, extras: PrintExtras = {}) {
     const dateStr = formatCambodianTime(order.createdAt || new Date().toISOString());
     const items = order.items || [];
     const settings = readAppSettings();
-    const rate = Number(settings.currencyRate) || 4100;
+    const rate = settings.currencyRate && settings.currencyRate > 0 ? Number(settings.currencyRate) : 4100;
+    
+    // Debug: Log the settings to see what's being read
+    console.log('Settings from printReceipt:', settings);
+    console.log('Currency rate being used:', rate);
     const formatCustomizations = (customizations?: any) => {
       if (!customizations) return '';
       const parts: string[] = [];
@@ -127,14 +132,17 @@ export function printOrderReceipt(order: Order, extras: PrintExtras = {}) {
       .footer { margin-top: 8px; font-size: 11px; }
       .header-meta { font-size: 11px; }
       .order-number { font-size: 28px; font-weight: 700; margin: 6px 0 2px; }
-      .location { font-size: 11px; margin-top: -10px; }
+      .location { font-size: 11px;}
       .contact-line { margin-top: 8px; font-size: 13px; }
+      .smach { margin-top: -20px; }
     </style>
   </head>
   <body onload="window.print(); setTimeout(() => window.close(), 300);">
     <div class="receipt">
       <div class="brand">
         <img src="${logo}" alt="Smach Cafe" />
+        <div class="brand-name center smach">ស្មាច់​ កាហ្វេ</div>
+        <div class="brand-name center">Smach Cafe</div>
         ${settings.location ? `<div class="location">${escapeHtml(settings.location)}</div>` : ''}
         ${phoneHtml}
         <div class="row muted">${dateStr}</div>
@@ -170,7 +178,7 @@ export function printOrderReceipt(order: Order, extras: PrintExtras = {}) {
         <div>Exchange Rate / អត្រាប្តូរប្រាក់ $1 = KHR ${rate}</div>
       </div>
       ${wifiHtml}
-      <div class="center footer">Powered By CodeForCambodia</div>
+      <div class="center footer" style="font-size: 6px;">Powered By CodeForCambodia</div>
     </div>
   </body>
   </html>`;

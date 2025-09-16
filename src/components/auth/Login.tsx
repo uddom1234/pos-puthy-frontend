@@ -90,11 +90,6 @@ const Login: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            <p>{t('demo_credentials')}:</p>
-            <p><strong>{t('admin')}:</strong> admin / admin123</p>
-            <p><strong>{t('staff')}:</strong> staff / staff123</p>
-          </div>
         </form>
       </div>
     </div>

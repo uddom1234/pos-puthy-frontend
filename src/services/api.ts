@@ -490,4 +490,16 @@ export const schemasAPI = {
   },
 };
 
+// Public Order Preview API (no auth required on server; but auth header may still be sent)
+export const publicPreviewAPI = {
+  get: async (): Promise<{ payload: any; updatedAt?: string }> => {
+    const response = await api.get('/public/order-preview');
+    return response.data;
+  },
+  save: async (payload: any): Promise<{ message: string }> => {
+    const response = await api.post('/public/order-preview', { payload });
+    return response.data;
+  },
+};
+
 export default api;

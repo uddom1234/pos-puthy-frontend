@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { reportsAPI, productsAPI, Product } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { readAppSettings } from '../../contexts/AppSettingsContext';
 import { formatCambodianTime } from '../../utils/timeUtils';
 import {
   CurrencyDollarIcon,
@@ -142,7 +143,7 @@ const Dashboard: React.FC = () => {
         <StatCard
           title={t('total_revenue')}
           value={`$${dailySummary?.totalRevenue.toFixed(2) || '0.00'}`}
-          subtitle={`៛${Math.round((dailySummary?.totalRevenue || 0) * 4100).toLocaleString()}`}
+          subtitle={`៛${Math.round((dailySummary?.totalRevenue || 0) * (readAppSettings().currencyRate || 4100)).toLocaleString()}`}
           icon={CurrencyDollarIcon}
           color="green"
         />
@@ -175,21 +176,21 @@ const Dashboard: React.FC = () => {
               <span className="text-gray-600 dark:text-gray-400">{t('total_revenue_label')}</span>
               <div className="text-right">
                 <div className="font-semibold">${monthlySummary?.totalRevenue.toFixed(2) || '0.00'}</div>
-                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.totalRevenue || 0) * 4100).toLocaleString()}</div>
+                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.totalRevenue || 0) * (readAppSettings().currencyRate || 4100)).toLocaleString()}</div>
               </div>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">{t('total_expenses_label')}</span>
               <div className="text-right">
                 <div className="font-semibold text-red-600">-${monthlySummary?.totalExpenses.toFixed(2) || '0.00'}</div>
-                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.totalExpenses || 0) * 4100).toLocaleString()}</div>
+                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.totalExpenses || 0) * (readAppSettings().currencyRate || 4100)).toLocaleString()}</div>
               </div>
             </div>
             <div className="flex justify-between border-t pt-3">
               <span className="text-gray-900 dark:text-gray-100 font-semibold">{t('net_profit_label')}</span>
               <div className="text-right">
                 <div className="font-bold text-green-600">${monthlySummary?.netProfit.toFixed(2) || '0.00'}</div>
-                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.netProfit || 0) * 4100).toLocaleString()}</div>
+                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.netProfit || 0) * (readAppSettings().currencyRate || 4100)).toLocaleString()}</div>
               </div>
             </div>
           </div>

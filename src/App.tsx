@@ -16,6 +16,7 @@ const IncomeExpense = React.lazy(() => import('./components/income-expense/Incom
 const Reports = React.lazy(() => import('./components/reports/Reports'));
 const Customers = React.lazy(() => import('./components/customers/Customers'));
 const Settings = React.lazy(() => import('./components/settings/Settings'));
+const OrderPreview = React.lazy(() => import('./components/pos/OrderPreview'));
 
 function App() {
   return (
@@ -28,6 +29,16 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             
+            {/* Public order preview (no layout, mobile-first) */}
+            <Route
+              path="/order-preview"
+              element={
+                <React.Suspense fallback={<div>Loading...</div>}>
+                  <OrderPreview />
+                </React.Suspense>
+              }
+            />
+
             {/* Protected routes */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route
