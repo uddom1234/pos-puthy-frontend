@@ -107,7 +107,7 @@ const POSModal: React.FC<POSModalProps> = ({ isOpen, onClose }) => {
       (async () => {
         if (!user) return;
         try {
-          const s = await schemasAPI.get(user.id, 'order');
+          const s = await schemasAPI.get('order');
           setOrderSchema(s.schema || []);
         } catch {}
       })();

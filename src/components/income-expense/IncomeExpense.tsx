@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { incomeExpenseAPI, IncomeExpense, incomeCategoriesAPI, IncomeCategory, expenseCategoriesAPI, ExpenseCategory } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { formatCambodianTime } from '../../utils/timeUtils';
 import { PlusIcon, FunnelIcon, PencilIcon, TrashIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
@@ -8,6 +9,7 @@ import UnifiedCategoryManagementModal from './UnifiedCategoryManagementModal';
 import { TableSkeleton, CardSkeleton, FilterSkeleton } from '../common/SkeletonLoader';
 
 const IncomeExpensePage: React.FC = () => {
+  const { isAdmin } = useAuth();
   const { t } = useLanguage();
   const [entries, setEntries] = useState<IncomeExpense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -320,20 +322,24 @@ const IncomeExpensePage: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('income_expense')}</h1>
         <div className="flex space-x-3">
           <button onClick={() => fetchEntries(false)} className="btn-outline">{t('refresh')}</button>
-          <button
-            onClick={() => setShowCategoryModal(true)}
-            className="btn-outline flex items-center space-x-2"
-          >
-            <Cog6ToothIcon className="h-5 w-5" />
-            <span>{t('manage_categories')}</span>
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <PlusIcon className="h-5 w-5" />
-            <span>{t('add_entry')}</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="btn-outline flex items-center space-x-2"
+            >
+              <Cog6ToothIcon className="h-5 w-5" />
+              <span>{t('manage_categories')}</span>
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn-primary flex items-center space-x-2"
+            >
+              <PlusIcon className="h-5 w-5" />
+              <span>{t('add_entry')}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -458,7 +464,7 @@ const IncomeExpensePage: React.FC = () => {
       </div>
 
       {/* Bulk Actions */}
-      {selectedEntries.size > 0 && (
+      {selectedEntries.size > 0 && isAdmin && (
         <div className="card bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-200 dark:border-red-800 shadow-lg">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-3">
@@ -509,14 +515,16 @@ const IncomeExpensePage: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedEntries.size === entries.length && entries.length > 0}
-                    onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
-                  />
-                </th>
+                {isAdmin && (
+                  <th className="px-6 py-4 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedEntries.size === entries.length && entries.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   {t('date')}
                 </th>
@@ -532,9 +540,11 @@ const IncomeExpensePage: React.FC = () => {
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   {t('amount')}
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                  {t('actions')}
-                </th>
+                {isAdmin && (
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                    {t('actions')}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -547,14 +557,16 @@ const IncomeExpensePage: React.FC = () => {
                       : ''
                   } ${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50'}`}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedEntries.has(entry.id)}
-                      onChange={() => handleSelectEntry(entry.id)}
-                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
-                    />
-                  </td>
+                  {isAdmin && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedEntries.has(entry.id)}
+                        onChange={() => handleSelectEntry(entry.id)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                      />
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {formatCambodianTime(entry.date, {
@@ -595,25 +607,27 @@ const IncomeExpensePage: React.FC = () => {
                       {entry.type === 'income' ? '+' : '-'}${entry.amount.toFixed(2)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        onClick={() => setEditingEntry(entry)}
-                        className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                        title={t('edit_entry')}
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteEntry(entry.id)}
-                        disabled={isDeleting}
-                        className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={t('delete_entry')}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <button
+                          onClick={() => setEditingEntry(entry)}
+                          className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title={t('edit_entry')}
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEntry(entry.id)}
+                          disabled={isDeleting}
+                          className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={t('delete_entry')}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -634,13 +648,15 @@ const IncomeExpensePage: React.FC = () => {
                 : t('get_started_adding_entry')
               }
             </p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary flex items-center space-x-2 mx-auto"
-            >
-              <PlusIcon className="h-5 w-5" />
-              <span>{t('add')} {t('entry')}</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary flex items-center space-x-2 mx-auto"
+              >
+                <PlusIcon className="h-5 w-5" />
+                <span>{t('add')} {t('entry')}</span>
+              </button>
+            )}
           </div>
         )}
       </div>

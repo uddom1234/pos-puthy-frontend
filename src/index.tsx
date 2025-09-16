@@ -3,11 +3,15 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import ReactModal from 'react-modal';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+
+// Setup react-modal accessibility root
+ReactModal.setAppElement('#root');
 root.render(
   <React.StrictMode>
     <AppSettingsProvider>

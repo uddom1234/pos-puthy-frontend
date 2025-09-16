@@ -64,8 +64,10 @@ export const formatCambodianDateOnly = (date: Date | string): string => {
  * @returns Relative time string
  */
 export const formatRelativeTime = (date: Date | string): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const now = new Date();
+  const input = typeof date === 'string' ? new Date(date) : date;
+  // Normalize both to Cambodia timezone to avoid UTC± offset confusion
+  const dateObj = new Date(input.toLocaleString('en-US', { timeZone: CAMBODIA_TIMEZONE }));
+  const now = getCurrentCambodianTime();
   const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
   
   if (diffInSeconds < 60) {

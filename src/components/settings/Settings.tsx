@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { schemasAPI, DynamicField, UserSchema } from '../../services/api';
+import { schemasAPI, DynamicField, UserSchema, usersAPI, User } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { useLanguage, languageNames, Language } from '../../contexts/LanguageContext';
-import { SunIcon, MoonIcon, GlobeAltIcon, CogIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon, GlobeAltIcon, CogIcon, UserPlusIcon, KeyIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import NumberInput from '../common/NumberInput';
 
 const defaultField: DynamicField = {
@@ -16,20 +16,27 @@ const defaultField: DynamicField = {
 const fieldTypes: Array<DynamicField['type']> = ['text', 'number', 'date', 'select', 'checkbox'];
 
 const Settings: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { theme, toggleTheme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const { currencyRate, setCurrencyRate, wifiInfo, setWifiInfo, phoneNumber, setPhoneNumber } = useAppSettings();
+  const { currencyRate, setCurrencyRate, wifiInfo, setWifiInfo, phoneNumber, setPhoneNumber, location, setLocation } = useAppSettings();
   const userId = user?.id || '';
   const [schema, setSchema] = useState<DynamicField[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // User management state
+  const [users, setUsers] = useState<User[]>([]);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordUser, setPasswordUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(false);
 
   const loadSchema = async () => {
-    if (!userId) return;
     setLoading(true);
     try {
-      const data: UserSchema = await schemasAPI.get(userId, 'order');
+      const data: UserSchema = await schemasAPI.get('order');
       setSchema(data.schema || []);
     } finally {
       setLoading(false);
@@ -38,7 +45,22 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     loadSchema();
-  }, [userId]);
+    if (isAdmin) {
+      loadUsers();
+    }
+  }, [isAdmin]);
+
+  const loadUsers = async () => {
+    setUserLoading(true);
+    try {
+      const data = await usersAPI.getAll();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setUserLoading(false);
+    }
+  };
 
   const addField = () => {
     setSchema((prev) => [...prev, { ...defaultField }]);
@@ -53,7 +75,6 @@ const Settings: React.FC = () => {
   };
 
   const save = async () => {
-    if (!userId) return;
     setSaving(true);
     try {
       // Clean schema: ensure keys are slugified
@@ -61,13 +82,72 @@ const Settings: React.FC = () => {
         ...f,
         key: f.key || f.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_'),
       }));
-      await schemasAPI.save(userId, 'order', cleaned);
+      await schemasAPI.save('order', cleaned);
       setSchema(cleaned);
       alert('Schema saved');
     } catch (e) {
       alert('Failed to save schema');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // User management functions
+  const handleCreateUser = async (userData: { username: string; password: string; name: string; role: 'admin' | 'staff' }) => {
+    try {
+      await usersAPI.create(userData);
+      loadUsers();
+      setShowUserModal(false);
+      alert('User created successfully');
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to create user');
+    }
+  };
+
+  const handleUpdateUser = async (userData: { id: string; name: string; role: 'admin' | 'staff' }) => {
+    try {
+      await usersAPI.update(userData.id, { name: userData.name, role: userData.role });
+      loadUsers();
+      setEditingUser(null);
+      alert('User updated successfully');
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update user');
+    }
+  };
+
+  const handleUserSave = async (userData: any) => {
+    if (editingUser) {
+      await handleUpdateUser(userData);
+    } else {
+      await handleCreateUser(userData);
+    }
+  };
+
+  const handleChangePassword = async (id: string, newPassword: string) => {
+    try {
+      await usersAPI.changePassword(id, newPassword);
+      setShowPasswordModal(false);
+      setPasswordUser(null);
+      alert('Password changed successfully');
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to change password');
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (id === user?.id) {
+      alert('You cannot delete your own account');
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      await usersAPI.delete(id);
+      loadUsers();
+      alert('User deleted successfully');
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to delete user');
     }
   };
 
@@ -198,6 +278,15 @@ const Settings: React.FC = () => {
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('common_values')}</p>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('location') || 'Location'}</label>
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder={t('location_description') || 'Store location or address'}
+                  className="input-field bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('wifi_info')}</label>
                 <input
                   value={wifiInfo}
@@ -219,6 +308,104 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Admin Only: User Management Section */}
+      {isAdmin && (
+        <div className="card p-6 bg-white dark:bg-gray-800">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <UserPlusIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">User Management</h2>
+            </div>
+            <button 
+              onClick={() => setShowUserModal(true)}
+              className="btn-primary flex items-center space-x-2"
+            >
+              <UserPlusIcon className="h-4 w-4" />
+              <span>Add User</span>
+            </button>
+          </div>
+
+          {userLoading ? (
+            <div className="text-gray-500 dark:text-gray-400">Loading users...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Username
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {users.map((u) => (
+                    <tr key={u.id} className={u.id === user?.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {u.username}
+                        {u.id === user?.id && (
+                          <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(You)</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {u.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          u.role === 'admin' 
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                            : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                        }`}>
+                          {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setEditingUser(u)}
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 flex items-center space-x-1"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPasswordUser(u);
+                              setShowPasswordModal(true);
+                            }}
+                            className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 flex items-center space-x-1"
+                          >
+                            <KeyIcon className="h-4 w-4" />
+                            <span>Password</span>
+                          </button>
+                          {u.id !== user?.id && (
+                            <button
+                              onClick={() => handleDeleteUser(u.id)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 flex items-center space-x-1"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Dynamic Fields Settings */}
       <div className="card p-6 bg-white dark:bg-gray-800">
@@ -282,6 +469,202 @@ const Settings: React.FC = () => {
             {saving ? t('saving') : t('save_schema')}
           </button>
         </div>
+      </div>
+
+      {/* User Creation/Edit Modal */}
+      {showUserModal && (
+        <UserModal
+          user={editingUser}
+          onSave={handleUserSave}
+          onCancel={() => {
+            setShowUserModal(false);
+            setEditingUser(null);
+          }}
+        />
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordModal && passwordUser && (
+        <PasswordModal
+          user={passwordUser}
+          onSave={handleChangePassword}
+          onCancel={() => {
+            setShowPasswordModal(false);
+            setPasswordUser(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// User Creation/Edit Modal Component
+const UserModal: React.FC<{
+  user?: User | null;
+  onSave: (data: any) => void;
+  onCancel: () => void;
+}> = ({ user, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    username: user?.username || '',
+    password: '',
+    name: user?.name || '',
+    role: user?.role || 'staff' as 'admin' | 'staff',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user && !formData.password) {
+      alert('Password is required for new users');
+      return;
+    }
+    
+    // For update, include the user ID
+    if (user) {
+      onSave({ id: user.id, ...formData });
+    } else {
+      onSave(formData);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content max-w-md w-full mx-4">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {user ? 'Edit User' : 'Create New User'}
+          </h2>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+            <input
+              type="text"
+              value={formData.username}
+              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              className="input-field"
+              required
+              disabled={!!user}
+            />
+            {user && <p className="text-xs text-gray-500 mt-1">Username cannot be changed</p>}
+          </div>
+          
+          {!user && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                className="input-field"
+                required
+              />
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="input-field"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'admin' | 'staff' }))}
+              className="input-field"
+              required
+            >
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          
+          <div className="flex space-x-3 pt-4">
+            <button type="button" onClick={onCancel} className="flex-1 btn-outline">
+              Cancel
+            </button>
+            <button type="submit" className="flex-1 btn-primary">
+              {user ? 'Update User' : 'Create User'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Password Change Modal Component
+const PasswordModal: React.FC<{
+  user: User;
+  onSave: (id: string, password: string) => void;
+  onCancel: () => void;
+}> = ({ user, onSave, onCancel }) => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
+    onSave(user.id, password);
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content max-w-md w-full mx-4">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Change Password for {user.username}
+          </h2>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field"
+              required
+              minLength={6}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="input-field"
+              required
+              minLength={6}
+            />
+          </div>
+          
+          <div className="flex space-x-3 pt-4">
+            <button type="button" onClick={onCancel} className="flex-1 btn-outline">
+              Cancel
+            </button>
+            <button type="submit" className="flex-1 btn-primary">
+              Change Password
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

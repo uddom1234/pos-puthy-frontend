@@ -27,6 +27,11 @@ const Inventory: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
+  const [referencedProducts, setReferencedProducts] = useState<string[]>([]);
 
   const refreshCategories = useCallback(async () => {
     try {
@@ -58,7 +63,7 @@ const Inventory: React.FC = () => {
     const loadSchema = async () => {
       if (!user?.id) return;
       try {
-        const s = await schemasAPI.get(user.id, 'product');
+        const s = await schemasAPI.get('product');
         setProductSchema(s.schema || []);
       } catch {}
       try {
@@ -136,7 +141,7 @@ const Inventory: React.FC = () => {
       (async () => {
         try {
           if (!user?.id) return;
-          const core = await schemasAPI.get(user.id, 'productCore' as any);
+          const core = await schemasAPI.get('productCore' as any);
           const list = (core as any)?.schema || [];
           if (Array.isArray(list)) setHiddenCore(list);
         } catch {}
@@ -232,55 +237,93 @@ const Inventory: React.FC = () => {
                   Pricing
                 </h3>
                 
-                {!hiddenCore.includes('price') && <div className="max-w-xs">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('price')} ($) *</label>
-                  <Field name="price">
-                    {({ field, meta }: { field: any; meta: any }) => (
-                      <NumberInput
-                        value={field.value || null}
-                        onChange={(value) => setFieldValue('price', value || 0)}
-                        placeholder="0.00"
-                        min={0}
-                        step={0.01}
-                        allowDecimals={true}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
-                          meta.error && meta.touched ? 'border-red-500' : ''
-                        }`}
-                      />
-                    )}
-                  </Field>
-                  <ErrorMessage name="price" component="div" className="text-red-500 text-sm mt-1" />
-                </div>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {!hiddenCore.includes('price') && <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('price')} ($) *</label>
+                    <Field name="price">
+                      {({ field, meta }: { field: any; meta: any }) => (
+                        <NumberInput
+                          value={field.value || null}
+                          onChange={(value) => setFieldValue('price', value || 0)}
+                          placeholder="0.00"
+                          min={0}
+                          step={0.01}
+                          allowDecimals={true}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                            meta.error && meta.touched ? 'border-red-500' : ''
+                          }`}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="price" component="div" className="text-red-500 text-sm mt-1" />
+                  </div>}
+
+                  {!hiddenCore.includes('priceKhr') && <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price (៛) *</label>
+                    <Field name="priceKhr">
+                      {({ field, meta }: { field: any; meta: any }) => (
+                        <NumberInput
+                          value={field.value || null}
+                          onChange={(value) => setFieldValue('priceKhr', value || 0)}
+                          placeholder="0"
+                          min={0}
+                          step={100}
+                          allowDecimals={false}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 ${
+                            meta.error && meta.touched ? 'border-red-500' : ''
+                          }`}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="priceKhr" component="div" className="text-red-500 text-sm mt-1" />
+                  </div>}
+                </div>
               </div>
 
-              {/* Stock Management Section */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  Stock Management
-                </h3>
+              {/* Stock Management Section - Admin only */}
+              {isAdmin && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    Stock Management
+                  </h3>
                 
-                {/* Stock Management Toggle */}
-                <div className="flex items-start space-x-4 p-4 bg-white border dark:border-gray-700 dark:bg-gray-800 border-gray-200 rounded-lg">
-                  <Field
-                    type="checkbox"
-                    name="hasStock"
-                    className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
-                  />
-                  <div className="flex-1">
-                    <label htmlFor="hasStock" className="text-sm font-medium text-gray-700 cursor-pointer">
-                      Enable Stock Management
-                    </label>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {values.hasStock ? 'Stock will be tracked and deducted on sales' : 'Made-to-order item (no stock tracking)'}
-                    </p>
+                {/* Stock Management Toggle - Admin only */}
+                {isAdmin ? (
+                  <div className="flex items-start space-x-4 p-4 bg-white border dark:border-gray-700 dark:bg-gray-800 border-gray-200 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="hasStock"
+                      checked={values.hasStock}
+                      onChange={(e) => setFieldValue('hasStock', e.target.checked)}
+                      className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="hasStock" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Enable Stock Management
+                      </label>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {values.hasStock ? 'Stock will be tracked and deducted on sales' : 'Made-to-order item (no stock tracking)'}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-4 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Stock management is restricted to admin users only
+                      </span>
+                    </div>
+                  </div>
+                )}
                 
-                {/* Stock Input - Only show when hasStock is enabled */}
-                {values.hasStock && !hiddenCore.includes('stock') && (
+                {/* Stock Input - Only show when hasStock is enabled and user is admin */}
+                {values.hasStock && !hiddenCore.includes('stock') && isAdmin && (
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('stock')} *</label>
@@ -320,7 +363,8 @@ const Inventory: React.FC = () => {
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              )}
             
               {/* Description Section */}
               {!hiddenCore.includes('description') && (
@@ -525,6 +569,74 @@ const Inventory: React.FC = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedProducts.length === 0) return;
+    
+    try {
+      setIsBulkDeleting(true);
+      setBulkDeleteError(null);
+      setReferencedProducts([]);
+      
+      // First try regular delete
+      try {
+        await productsAPI.bulkDelete(selectedProducts, false);
+        fetchProducts();
+        setSelectedProducts([]);
+        setShowBulkDeleteModal(false);
+        alert(`${selectedProducts.length} products deleted successfully`);
+      } catch (deleteError: any) {
+        // If it fails due to transaction items, show force delete option
+        if (deleteError?.response?.data?.hasTransactionItems) {
+          setBulkDeleteError(deleteError.response.data.message);
+          setReferencedProducts(deleteError.response.data.referencedProducts || []);
+          return; // Don't reset loading state, show force delete option
+        }
+        throw deleteError;
+      }
+    } catch (error: any) {
+      console.error('Error bulk deleting products:', error);
+      alert('Failed to delete products');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleForceBulkDelete = async () => {
+    if (selectedProducts.length === 0) return;
+    
+    try {
+      setIsBulkDeleting(true);
+      await productsAPI.bulkDelete(selectedProducts, true); // force delete
+      fetchProducts();
+      setSelectedProducts([]);
+      setShowBulkDeleteModal(false);
+      setBulkDeleteError(null);
+      setReferencedProducts([]);
+      alert(`${selectedProducts.length} products deleted successfully`);
+    } catch (error) {
+      console.error('Error force bulk deleting products:', error);
+      alert('Failed to force delete products');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProducts.length === products.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(products.map(product => product.id));
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -572,6 +684,41 @@ const Inventory: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Actions */}
+      {products.length > 0 && isAdmin && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={selectedProducts.length === products.length && products.length > 0}
+                onChange={handleSelectAll}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                Select All ({selectedProducts.length}/{products.length})
+              </span>
+            </label>
+          </div>
+          
+          {selectedProducts.length > 0 && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {selectedProducts.length} selected
+              </span>
+              <button
+                onClick={() => setShowBulkDeleteModal(true)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+              >
+                <TrashIcon className="h-4 w-4" />
+                <span>Delete Selected</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Category Filter */}
       <div className="flex flex-wrap gap-2">
         {['all', ...categories].map(category => (
@@ -595,6 +742,16 @@ const Inventory: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
+                {isAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.length === products.length && products.length > 0}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Image
                 </th>
@@ -605,7 +762,10 @@ const Inventory: React.FC = () => {
                   {t('category')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t('price')}
+                  {t('price')} ($)
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Price (៛)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {t('stock')}
@@ -628,6 +788,16 @@ const Inventory: React.FC = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {products.map((product) => (
                 <tr key={product.id}>
+                  {isAdmin && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.includes(product.id)}
+                        onChange={() => handleSelectProduct(product.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <ImagePreview
                       src={product.imageUrl || ''}
@@ -664,6 +834,9 @@ const Inventory: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     ${product.price.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {product.priceKhr ? `៛${product.priceKhr.toLocaleString()}` : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {product.hasStock ? product.stock : 'N/A'}
@@ -820,6 +993,93 @@ const Inventory: React.FC = () => {
                 )}
                 <span>{isDeleting ? 'Deleting...' : 'Yes, Delete Everything'}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content max-w-2xl w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Selected Products
+            </h3>
+            
+            {!bulkDeleteError ? (
+              <div className="mb-6">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Are you sure you want to delete {selectedProducts.length} selected product{selectedProducts.length > 1 ? 's' : ''}? 
+                  This action cannot be undone.
+                </p>
+              </div>
+            ) : (
+              <div className="mb-6">
+                <p className="text-red-600 dark:text-red-400 font-medium mb-2">⚠️ Warning: Some products cannot be deleted!</p>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  The following products are referenced in transaction history and/or existing orders:
+                </p>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-medium text-yellow-800 mb-2">Referenced products:</h4>
+                  <div className="space-y-1">
+                    {referencedProducts.map((productName) => (
+                      <div key={productName} className="text-sm text-yellow-700">
+                        • {productName}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <p className="text-gray-800 font-medium">
+                  You can force delete all products, which will remove them and ALL related data including orders and transactions. 
+                  Consider hiding the products instead if you want to keep historical records.
+                </p>
+              </div>
+            )}
+            
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowBulkDeleteModal(false);
+                  setBulkDeleteError(null);
+                  setReferencedProducts([]);
+                }}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              
+              {!bulkDeleteError ? (
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {isBulkDeleting && (
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  <span>{isBulkDeleting ? 'Deleting...' : `Delete ${selectedProducts.length} Products`}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleForceBulkDelete}
+                  disabled={isBulkDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {isBulkDeleting && (
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  <span>{isBulkDeleting ? 'Force Deleting...' : 'Yes, Delete Everything'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

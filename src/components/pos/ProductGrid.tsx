@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Product } from '../../services/api';
+import { CartItem } from './POS';
 import { useLanguage } from '../../contexts/LanguageContext';
 import ProductCustomizationModal from './ProductCustomizationModal';
 import { ProductGridSkeleton } from '../common/SkeletonLoader';
@@ -8,14 +9,29 @@ interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product, customizations?: any) => void;
   loading: boolean;
+  cartItems?: CartItem[];
+  onStockBlocked?: (message: string) => void;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loading }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loading, cartItems = [], onStockBlocked }) => {
   const { t } = useLanguage();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCustomizationModal, setShowCustomizationModal] = useState(false);
 
+  const getRemainingStock = (product: Product): number | undefined => {
+    if (!(product.hasStock && typeof product.stock === 'number')) return undefined;
+    const used = cartItems
+      .filter(ci => ci.productId === product.id)
+      .reduce((sum, ci) => sum + ci.quantity, 0);
+    return Math.max(0, product.stock - used);
+  };
+
   const handleProductClick = (product: Product) => {
+    const remaining = getRemainingStock(product);
+    if (remaining !== undefined && remaining < 1) {
+      onStockBlocked?.('Insufficient stock / ស្តុកមិនគ្រប់គ្រាន់');
+      return; // out of stock; do nothing
+    }
     // Show customization modal if product has option schema
     const hasCustomizations = Array.isArray((product as any).optionSchema) && (product as any).optionSchema.length > 0;
     
@@ -55,7 +71,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loadin
             key={product.id}
             className="card p-4 transition transform duration-200 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
           >
-            <div className="cursor-pointer" onClick={() => handleProductClick(product)}>
+            <div
+              className={`cursor-pointer relative ${(() => { const r = getRemainingStock(product); return r !== undefined && r < 1 ? 'opacity-60 pointer-events-none' : ''; })()}`}
+              onClick={() => handleProductClick(product)}
+            >
               {/* Product Image / Placeholder */}
               {product.imageUrl ? (
                 <div className="h-40 sm:h-48 rounded-lg mb-3 overflow-hidden bg-gray-100">
@@ -74,18 +93,30 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, loadin
                 {product.description}
               </p>
               
-              <div className="flex items-center justify-between">
-                <span className="text-lg sm:text-xl font-bold text-primary-600 dark:text-primary-400">
-                  ${product.price.toFixed(2)}
-                </span>
+              <div className="flex flex-col space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg sm:text-xl font-bold text-primary-600 dark:text-primary-400">
+                    ${product.price.toFixed(2)}
+                  </span>
+                  {product.priceKhr && (
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      ៛{product.priceKhr.toLocaleString()}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center space-x-2">
                   {product.hasStock && (
                     <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
-                      product.stock > product.lowStockThreshold
+                      (getRemainingStock(product) ?? product.stock) > product.lowStockThreshold
                         ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
                         : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                     }`}>
-                      {product.stock} {t('left')}
+                      {(getRemainingStock(product) ?? product.stock)} {t('left')}
+                    </span>
+                  )}
+                  {product.hasStock && (() => { const r = getRemainingStock(product); return r !== undefined && r < 1; })() && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
+                      Out of Stock
                     </span>
                   )}
                   {(product.category === 'coffee' || product.category === 'food') && (

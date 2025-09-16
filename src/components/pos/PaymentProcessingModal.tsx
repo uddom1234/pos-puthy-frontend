@@ -5,7 +5,7 @@ import NumberInput from '../common/NumberInput';
 
 interface PaymentProcessingModalProps {
   order: Order;
-  onPaymentComplete: (paymentMethod: 'cash' | 'qr', discount?: number, cashReceived?: number) => void;
+  onPaymentComplete: (paymentMethod: 'cash' | 'qr', discount?: number, cashReceived?: number, currency?: 'USD' | 'KHR') => void;
   onCancel: () => void;
 }
 
@@ -19,6 +19,7 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
   const [cashReceived, setCashReceived] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
   const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>('fixed');
+  const [currency, setCurrency] = useState<'USD' | 'KHR'>('USD');
 
   const calculateDiscountAmount = () => {
     if (discountType === 'percentage') {
@@ -30,15 +31,44 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
   const finalTotal = order.total - calculateDiscountAmount();
   const change = paymentMethod === 'cash' ? Math.max(0, cashReceived - finalTotal) : 0;
 
+  const convertToKhr = (usdAmount: number) => {
+    return usdAmount * 4100; // Default rate, should be from settings
+  };
+
+  const convertToUsd = (khrAmount: number) => {
+    return khrAmount / 4100; // Default rate, should be from settings
+  };
+
+  const getDisplayTotal = () => {
+    if (currency === 'KHR') {
+      return convertToKhr(finalTotal);
+    }
+    return finalTotal;
+  };
+
+  const getDisplayCashReceived = () => {
+    if (currency === 'KHR') {
+      return convertToKhr(cashReceived);
+    }
+    return cashReceived;
+  };
+
+  const getDisplayChange = () => {
+    if (currency === 'KHR') {
+      return convertToKhr(change);
+    }
+    return change;
+  };
+
   const handleProcessPayment = () => {
     if (paymentMethod === 'cash') {
       if (cashReceived < finalTotal) {
         alert('Insufficient cash received');
         return;
       }
-      onPaymentComplete(paymentMethod, calculateDiscountAmount(), cashReceived);
+      onPaymentComplete(paymentMethod, calculateDiscountAmount(), cashReceived, currency);
     } else {
-      onPaymentComplete(paymentMethod, calculateDiscountAmount());
+      onPaymentComplete(paymentMethod, calculateDiscountAmount(), undefined, currency);
     }
   };
 
@@ -91,6 +121,38 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
             </div>
           </div>
 
+          {/* Currency Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Currency
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setCurrency('USD')}
+                className={`p-4 border-2 rounded-lg flex flex-col items-center space-y-2 ${
+                  currency === 'USD' 
+                    ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20' 
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+              >
+                <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">$</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">USD</span>
+              </button>
+              
+              <button
+                onClick={() => setCurrency('KHR')}
+                className={`p-4 border-2 rounded-lg flex flex-col items-center space-y-2 ${
+                  currency === 'KHR' 
+                    ? 'border-purple-500 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20' 
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+              >
+                <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">៛</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">KHR</span>
+              </button>
+            </div>
+          </div>
+
           {/* Discount */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -124,25 +186,34 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
           {paymentMethod === 'cash' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('cash_received')}
+                {t('cash_received')} ({currency})
               </label>
               <NumberInput
-                value={cashReceived}
-                onChange={(value) => setCashReceived(value || 0)}
+                value={getDisplayCashReceived()}
+                onChange={(value) => {
+                  const convertedValue = currency === 'KHR' ? convertToUsd(value || 0) : (value || 0);
+                  setCashReceived(convertedValue);
+                }}
                 min={0}
-                step={0.01}
-                placeholder="0.00"
+                step={currency === 'KHR' ? 100 : 0.01}
+                placeholder={currency === 'KHR' ? "0" : "0.00"}
                 className="w-full px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                allowDecimals={true}
+                allowDecimals={currency === 'USD'}
               />
               {cashReceived > 0 && cashReceived >= finalTotal && (
                 <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                  {t('change')}: ${change.toFixed(2)}
+                  {t('change')}: {currency === 'KHR' 
+                    ? `៛${Math.round(getDisplayChange()).toLocaleString()}`
+                    : `$${getDisplayChange().toFixed(2)}`
+                  }
                 </p>
               )}
               {cashReceived > 0 && cashReceived < finalTotal && (
                 <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                  Insufficient amount (need ${(finalTotal - cashReceived).toFixed(2)} more)
+                  Insufficient amount (need {currency === 'KHR' 
+                    ? `៛${Math.round(convertToKhr(finalTotal - cashReceived)).toLocaleString()}`
+                    : `$${(finalTotal - cashReceived).toFixed(2)}`
+                  } more)
                 </p>
               )}
             </div>
@@ -152,17 +223,32 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
           <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
             <div className="flex justify-between text-sm mb-2">
               <span className="text-gray-900 dark:text-white">{t('subtotal')}:</span>
-              <span className="text-gray-900 dark:text-white">${order.total.toFixed(2)}</span>
+              <span className="text-gray-900 dark:text-white">
+                {currency === 'KHR' 
+                  ? `៛${Math.round(convertToKhr(order.total)).toLocaleString()}`
+                  : `$${order.total.toFixed(2)}`
+                }
+              </span>
             </div>
             {calculateDiscountAmount() > 0 && (
               <div className="flex justify-between text-sm mb-2 text-green-600 dark:text-green-400">
                 <span>{t('discount')}:</span>
-                <span>-${calculateDiscountAmount().toFixed(2)}</span>
+                <span>
+                  {currency === 'KHR' 
+                    ? `-៛${Math.round(convertToKhr(calculateDiscountAmount())).toLocaleString()}`
+                    : `-$${calculateDiscountAmount().toFixed(2)}`
+                  }
+                </span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold border-t border-gray-200 dark:border-gray-600 pt-2">
               <span className="text-gray-900 dark:text-white">Total:</span>
-              <span className="text-gray-900 dark:text-white">${finalTotal.toFixed(2)}</span>
+              <span className="text-gray-900 dark:text-white">
+                {currency === 'KHR' 
+                  ? `៛${Math.round(getDisplayTotal()).toLocaleString()}`
+                  : `$${getDisplayTotal().toFixed(2)}`
+                }
+              </span>
             </div>
           </div>
 

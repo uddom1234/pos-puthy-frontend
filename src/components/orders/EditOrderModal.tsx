@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Order, DynamicField } from '../../services/api';
 import NumberInput from '../common/NumberInput';
+import { Product, productsAPI } from '../../services/api';
+import ProductCustomizationModal from '../pos/ProductCustomizationModal';
 
 interface EditOrderModalProps {
   order: Order;
@@ -16,7 +18,6 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
   onCancel
 }) => {
   const [formData, setFormData] = useState({
-    tableNumber: order.tableNumber || '',
     notes: order.notes || '',
     paymentStatus: order.paymentStatus || 'unpaid',
     paymentMethod: order.paymentMethod || '',
@@ -24,6 +25,17 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
     items: order.items,
     metadata: order.metadata || {}
   });
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      try { setProducts(await productsAPI.getAll()); } catch {}
+    })();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +71,39 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
     }));
   };
 
+  const addProductToOrder = (product: Product, customizations?: any) => {
+    // Compute price including dynamic deltas similar to POS
+    let unitPrice = product.price;
+    const schema: any[] = Array.isArray((product as any).optionSchema) ? (product as any).optionSchema : [];
+    schema.forEach(group => {
+      const applied = customizations?.[group.key];
+      if (group.type === 'single' && applied) {
+        const value = (applied?.value ?? applied) as string;
+        const opt = (group.options || []).find((o: any) => o.value === value);
+        if (opt) unitPrice += Number(opt.priceDelta || 0);
+      } else if (group.type === 'multi' && Array.isArray(applied)) {
+        applied.forEach((v: any) => {
+          const value = (v?.value ?? v) as string;
+          const opt = (group.options || []).find((o: any) => o.value === value);
+          if (opt) unitPrice += Number(opt.priceDelta || 0);
+        });
+      }
+    });
+
+    const nextItems = [
+      ...formData.items,
+      {
+        productId: product.id,
+        productName: product.name,
+        quantity: 1,
+        price: unitPrice,
+        customizations,
+      },
+    ];
+    const newTotal = nextItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
+    setFormData(prev => ({ ...prev, items: nextItems, total: newTotal }));
+  };
+
   const updateMetadata = (key: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -81,17 +126,6 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Order Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Table Number</label>
-              <input
-                type="text"
-                value={formData.tableNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, tableNumber: e.target.value }))}
-                className="input-field"
-                placeholder="Table number"
-              />
-            </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Status</label>
               <select
@@ -241,6 +275,30 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
               <div className="text-lg font-bold text-gray-900 dark:text-white">
                 Total: ${formData.total.toFixed(2)}
               </div>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPicker(v => !v)}
+                  className="btn-outline text-sm"
+                >
+                  Add Product
+                </button>
+              </div>
+              {showPicker && (
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-auto">
+                  {products.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { setSelectedProduct(p); setShowCustomize(true); }}
+                      className="p-2 border rounded text-left hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-xs text-gray-500">${p.price.toFixed(2)}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -267,3 +325,4 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
 };
 
 export default EditOrderModal;
+// Inject customization modal when adding products

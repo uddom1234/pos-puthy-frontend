@@ -18,6 +18,9 @@ const Orders: React.FC = () => {
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -27,7 +30,7 @@ const Orders: React.FC = () => {
     (async () => {
       if (!user) return;
       try {
-        const s = await schemasAPI.get(user.id, 'order');
+        const s = await schemasAPI.get('order');
         setOrderSchema(s.schema || []);
       } catch {}
     })();
@@ -60,11 +63,11 @@ const Orders: React.FC = () => {
     }
   };
 
-  const handlePaymentComplete = async (paymentMethod: 'cash' | 'qr', discount?: number, cashReceived?: number) => {
+  const handlePaymentComplete = async (paymentMethod: 'cash' | 'qr', discount?: number, cashReceived?: number, currency?: 'USD' | 'KHR') => {
     if (!selectedOrderForPayment) return;
     
     try {
-      await ordersAPI.updatePayment(selectedOrderForPayment.id, 'paid', paymentMethod, discount, cashReceived);
+      await ordersAPI.updatePayment(selectedOrderForPayment.id, 'paid', paymentMethod, discount, cashReceived, true);
       setOrders(prev => 
         prev.map(order => 
           order.id === selectedOrderForPayment.id ? { ...order, paymentStatus: 'paid', paymentMethod } : order
@@ -78,7 +81,7 @@ const Orders: React.FC = () => {
 
   const updatePaymentStatus = async (orderId: string, paymentStatus: 'unpaid' | 'paid', paymentMethod?: 'cash' | 'qr') => {
     try {
-      await ordersAPI.updatePayment(orderId, paymentStatus, paymentMethod);
+      await ordersAPI.updatePayment(orderId, paymentStatus, paymentMethod, undefined, undefined, true);
       setOrders(prev => 
         prev.map(order => 
           order.id === orderId ? { ...order, paymentStatus, paymentMethod } : order
@@ -97,11 +100,46 @@ const Orders: React.FC = () => {
       await ordersAPI.delete(orderToDelete.id);
       setOrders(prev => prev.filter(order => order.id !== orderToDelete.id));
       setOrderToDelete(null);
+      alert('Order deleted successfully');
     } catch (error) {
       console.error('Error deleting order:', error);
       alert('Failed to delete order');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrders.length === 0) return;
+    
+    try {
+      setIsBulkDeleting(true);
+      await ordersAPI.bulkDelete(selectedOrders);
+      setOrders(prev => prev.filter(order => !selectedOrders.includes(order.id)));
+      setSelectedOrders([]);
+      setShowBulkDeleteConfirm(false);
+      alert(`${selectedOrders.length} orders deleted successfully`);
+    } catch (error) {
+      console.error('Error bulk deleting orders:', error);
+      alert('Failed to delete orders');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleSelectOrder = (orderId: string) => {
+    setSelectedOrders(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedOrders.length === orders.length) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(orders.map(order => order.id));
     }
   };
 
@@ -112,6 +150,46 @@ const Orders: React.FC = () => {
       case 'partial': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatCustomizations = (customizations?: any) => {
+    if (!customizations) return '';
+    const parts: string[] = [];
+
+    const keys = Object.keys(customizations || {});
+    const hasDynamicSugar = keys.some(k => k !== 'sugar' && /sugar/i.test(k) && customizations[k] !== undefined && customizations[k] !== null && customizations[k] !== '');
+    const hasDynamicSize = keys.some(k => k !== 'size' && /size/i.test(k) && customizations[k] !== undefined && customizations[k] !== null && customizations[k] !== '');
+    // Only show legacy size/sugar if they are explicit choices (not defaults)
+    if (customizations.size && !hasDynamicSize) {
+      const sizeVal = customizations.size?.label ?? customizations.size;
+      const sizeStr = String(sizeVal).toLowerCase();
+      if (typeof sizeVal === 'object' || (sizeStr && sizeStr !== 'medium')) {
+        parts.push(`Size: ${String(sizeVal)}`);
+      }
+    }
+    if (customizations.sugar && !hasDynamicSugar) {
+      const sugarVal = customizations.sugar?.label ?? customizations.sugar;
+      const sugarStr = String(sugarVal).toLowerCase();
+      if (typeof sugarVal === 'object' || (sugarStr && sugarStr !== 'normal')) {
+        parts.push(`Sugar: ${String(sugarVal)}`);
+      }
+    }
+    if (Array.isArray(customizations.addOns) && customizations.addOns.length > 0) {
+      parts.push(`Add-ons: ${customizations.addOns.map((a: any) => a.name || a.label || a).join(', ')}`);
+    }
+
+    Object.entries(customizations).forEach(([key, value]) => {
+      if (['size', 'sugar', 'addOns'].includes(key)) return;
+      if (value === undefined || value === null || value === '') return;
+      if (Array.isArray(value) && value.length === 0) return;
+      const prettyKey = key.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+      const prettyVal = Array.isArray(value)
+        ? value.map((v: any) => (v?.label ?? v)).join(', ')
+        : String((value as any)?.label ?? value);
+      parts.push(`${prettyKey}: ${prettyVal}`);
+    });
+
+    return parts.join(' · ');
   };
 
   if (loading) {
@@ -138,6 +216,41 @@ const Orders: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Actions */}
+      {orders.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={selectedOrders.length === orders.length && orders.length > 0}
+                onChange={handleSelectAll}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                Select All ({selectedOrders.length}/{orders.length})
+              </span>
+            </label>
+          </div>
+          
+          {selectedOrders.length > 0 && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {selectedOrders.length} selected
+              </span>
+              <button
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+              >
+                <TrashIcon className="h-4 w-4" />
+                <span>Delete Selected</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {orders.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400 text-lg">No orders found</p>
@@ -147,17 +260,25 @@ const Orders: React.FC = () => {
           {orders.map((order) => (
             <div key={order.id} className="card p-4 sm:p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-4 lg:space-y-0">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{t('order_number')} #{order.id.slice(-8)}</h3>
-                  <p className="text-gray-600">
-                    {formatCambodianTime(order.createdAt)}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {formatRelativeTime(order.createdAt)}
-                  </p>
-                  {order.tableNumber && (
-                    <p className="text-sm text-gray-500">{t('table')}: {order.tableNumber}</p>
-                  )}
+                <div className="flex items-start space-x-3 flex-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedOrders.includes(order.id)}
+                    onChange={() => handleSelectOrder(order.id)}
+                    className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">{t('order_number')} #{order.id.slice(-8)}</h3>
+                    <p className="text-gray-600">
+                      {formatCambodianTime(order.createdAt)}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {formatRelativeTime(order.createdAt)}
+                    </p>
+                    {order.tableNumber && (
+                      <p className="text-sm text-gray-500">{t('table')}: {order.tableNumber}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end xl:items-center space-y-2 sm:space-y-0 sm:space-x-4 lg:space-x-0 lg:space-y-2 xl:space-x-4 xl:space-y-0">
                   <div className="flex flex-col space-y-1">
@@ -197,12 +318,19 @@ const Orders: React.FC = () => {
 
               <div className="space-y-2 mb-4">
                 {order.items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center text-sm">
-                    <span>{item.quantity}x {item.productName}</span>
-                    <span className="text-right">
+                  <div key={index} className="flex justify-between items-start text-sm">
+                    <div className="pr-2">
+                      <div>{item.quantity}x {item.productName}</div>
+                      {item.customizations && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {formatCustomizations(item.customizations)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
                       <div>${(item.price * item.quantity).toFixed(2)}</div>
                       <div className="text-xs text-gray-500">៛ {((item.price * item.quantity) * (readAppSettings().currencyRate || 4100)).toFixed(0)}</div>
-                    </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -296,6 +424,41 @@ const Orders: React.FC = () => {
                   </svg>
                 )}
                 <span>{isDeleting ? 'Deleting...' : 'Delete Order'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Delete Selected Orders</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to delete {selectedOrders.length} selected order{selectedOrders.length > 1 ? 's' : ''}? 
+              This action cannot be undone and will remove all associated transactions and payment records.
+            </p>
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+              >
+                {isBulkDeleting && (
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                <span>{isBulkDeleting ? 'Deleting...' : `Delete ${selectedOrders.length} Orders`}</span>
               </button>
             </div>
           </div>

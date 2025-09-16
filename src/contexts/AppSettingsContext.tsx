@@ -4,18 +4,21 @@ export interface AppSettings {
   currencyRate: number; // USD -> KHR
   wifiInfo: string;
   phoneNumber: string;
+  location: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   currencyRate: 4100,
   wifiInfo: '',
   phoneNumber: '',
+  location: '',
 };
 
 interface AppSettingsContextShape extends AppSettings {
   setCurrencyRate: (rate: number) => void;
   setWifiInfo: (wifi: string) => void;
   setPhoneNumber: (phone: string) => void;
+  setLocation: (location: string) => void;
 }
 
 const AppSettingsContext = createContext<AppSettingsContextShape | undefined>(undefined);
@@ -43,9 +46,10 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const setCurrencyRate = (rate: number) => persist({ ...settings, currencyRate: rate });
   const setWifiInfo = (wifi: string) => persist({ ...settings, wifiInfo: wifi });
   const setPhoneNumber = (phone: string) => persist({ ...settings, phoneNumber: phone });
+  const setLocation = (location: string) => persist({ ...settings, location });
 
   return (
-    <AppSettingsContext.Provider value={{ ...settings, setCurrencyRate, setWifiInfo, setPhoneNumber }}>
+    <AppSettingsContext.Provider value={{ ...settings, setCurrencyRate, setWifiInfo, setPhoneNumber, setLocation }}>
       {children}
     </AppSettingsContext.Provider>
   );

@@ -8,9 +8,11 @@ interface CartProps {
   onUpdateItem: (itemId: string, quantity: number) => void;
   onRemoveItem: (itemId: string) => void;
   onClear: () => void;
+  products?: { id: string; stock: number; hasStock: boolean }[];
+  onStockBlocked?: (message: string) => void;
 }
 
-const Cart: React.FC<CartProps> = ({ items, onUpdateItem, onRemoveItem, onClear }) => {
+const Cart: React.FC<CartProps> = ({ items, onUpdateItem, onRemoveItem, onClear, products = [], onStockBlocked }) => {
   const getSubtotal = () => {
     return items.reduce((total, item) => total + item.totalPrice, 0);
   };
@@ -19,20 +21,36 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateItem, onRemoveItem, onClear 
   const formatCustomizations = (customizations?: any) => {
     if (!customizations) return '';
     
-    const parts = [];
+    const parts: string[] = [];
+    const keys = Object.keys(customizations);
+    const hasDynamicSugar = keys.some(k => k !== 'sugar' && /sugar/i.test(k) && customizations[k] !== undefined && customizations[k] !== null && customizations[k] !== '');
+    const hasDynamicSize = keys.some(k => k !== 'size' && /size/i.test(k) && customizations[k] !== undefined && customizations[k] !== null && customizations[k] !== '');
     
-    if (customizations.size) {
-      parts.push(`Size: ${customizations.size}`);
+    if (customizations.size && !hasDynamicSize) {
+      const val = customizations.size?.label ?? customizations.size;
+      parts.push(`Size: ${val}`);
     }
     
-    if (customizations.sugar) {
-      parts.push(`Sugar: ${customizations.sugar}`);
+    if (customizations.sugar && !hasDynamicSugar) {
+      const val = customizations.sugar?.label ?? customizations.sugar;
+      parts.push(`Sugar: ${val}`);
     }
     
     if (customizations.addOns && customizations.addOns.length > 0) {
-      parts.push(`Add-ons: ${customizations.addOns.map((addon: any) => addon.name).join(', ')}`);
+      parts.push(`Add-ons: ${customizations.addOns.map((addon: any) => addon.name || addon.label || addon).join(', ')}`);
     }
-    
+    // Include any dynamic optionSchema selections beyond the legacy keys
+    Object.entries(customizations).forEach(([key, value]) => {
+      if (['size', 'sugar', 'addOns'].includes(key)) return;
+      if (value === undefined || value === null || value === '') return;
+      if (Array.isArray(value) && value.length === 0) return;
+      const prettyKey = key.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+      const prettyVal = Array.isArray(value)
+        ? value.map((v: any) => (v?.label ?? v)).join(', ')
+        : String((value as any)?.label ?? value);
+      parts.push(`${prettyKey}: ${prettyVal}`);
+    });
+
     return parts.join(' • ');
   };
 
@@ -81,15 +99,32 @@ const Cart: React.FC<CartProps> = ({ items, onUpdateItem, onRemoveItem, onClear 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => onUpdateItem(item.id, item.quantity - 1)}
+                  onClick={() => {
+                    if (item.quantity <= 1) {
+                      onRemoveItem(item.id);
+                    } else {
+                      onUpdateItem(item.id, item.quantity - 1);
+                    }
+                  }}
                   className="p-1 rounded-full hover:bg-gray-100"
-                  disabled={item.quantity <= 1}
                 >
                   <MinusIcon className="h-4 w-4" />
                 </button>
                 <span className="w-8 text-center font-medium">{item.quantity}</span>
                 <button
-                  onClick={() => onUpdateItem(item.id, item.quantity + 1)}
+                  onClick={() => {
+                    const p = products.find(p => p.id === item.productId);
+                    if (p && p.hasStock && typeof p.stock === 'number') {
+                      const currentProductQty = items
+                        .filter(ci => ci.productId === item.productId)
+                        .reduce((sum, ci) => sum + ci.quantity, 0);
+                      if (currentProductQty >= p.stock) {
+                        onStockBlocked?.('Insufficient stock / ស្តុកមិនគ្រប់គ្រាន់');
+                        return; // cap
+                      }
+                    }
+                    onUpdateItem(item.id, item.quantity + 1);
+                  }}
                   className="p-1 rounded-full hover:bg-gray-100"
                 >
                   <PlusIcon className="h-4 w-4" />

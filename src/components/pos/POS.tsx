@@ -109,7 +109,7 @@ const POS: React.FC = () => {
     (async () => {
       if (!user) return;
       try {
-        const s = await schemasAPI.get(user.id, 'order');
+        const s = await schemasAPI.get('order');
         setOrderSchema(s.schema || []);
       } catch {}
     })();
@@ -154,17 +154,25 @@ const POS: React.FC = () => {
     optSchema.forEach(group => {
       const applied = customizations?.[group.key];
       if (group.type === 'single' && applied) {
-        const opt = (group.options || []).find((o: any) => o.value === applied);
+        const value = (applied?.value ?? applied) as string;
+        const opt = (group.options || []).find((o: any) => o.value === value);
         if (opt) totalPrice += Number(opt.priceDelta || 0);
       } else if (group.type === 'multi' && Array.isArray(applied)) {
-        applied.forEach((val: string) => {
-          const opt = (group.options || []).find((o: any) => o.value === val);
+        applied.forEach((val: any) => {
+          const value = (val?.value ?? val) as string;
+          const opt = (group.options || []).find((o: any) => o.value === value);
           if (opt) totalPrice += Number(opt.priceDelta || 0);
         });
       }
     });
 
     setCartItems(prev => {
+      const totalQtyForProduct = prev
+        .filter(ci => ci.productId === product.id)
+        .reduce((sum, ci) => sum + ci.quantity, 0);
+      if (product.hasStock && typeof product.stock === 'number' && totalQtyForProduct >= product.stock) {
+        return prev; // cannot add more; reached stock
+      }
       // Check if the same product with same customizations already exists
       const existingItemIndex = prev.findIndex(item => 
         item.productId === product.id && 
@@ -173,27 +181,39 @@ const POS: React.FC = () => {
 
       let newCart;
       if (existingItemIndex !== -1) {
-        // If item exists, increase quantity
+        // If item exists, increase quantity with stock guard
+        const existing = prev[existingItemIndex];
+        const desiredQty = existing.quantity + 1;
+        if (product.hasStock && typeof product.stock === 'number') {
+          const otherQty = totalQtyForProduct - existing.quantity;
+          if (desiredQty + otherQty > product.stock) {
+            return prev; // cap silently
+          }
+        }
         newCart = prev.map((item, index) => 
           index === existingItemIndex 
-            ? { 
-                ...item, 
-                quantity: item.quantity + 1, 
-                totalPrice: item.price * (item.quantity + 1) 
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+                totalPrice: item.price * (item.quantity + 1)
               }
             : item
         );
       } else {
         // If item doesn't exist, create new cart item
+        if (product.hasStock && typeof product.stock === 'number' && product.stock < 1) {
+          return prev;
+        }
         const cartItemId = `${product.id}_${Date.now()}`;
+        const unitPrice = totalPrice; // price including deltas/add-ons per unit
         const cartItem: CartItem = {
           id: cartItemId,
           productId: product.id,
           productName: product.name,
-          price: product.price,
+          price: unitPrice,
           quantity: 1,
           customizations,
-          totalPrice,
+          totalPrice: unitPrice * 1,
         };
         newCart = [...prev, cartItem];
       }
@@ -205,6 +225,17 @@ const POS: React.FC = () => {
 
   const updateCartItem = (itemId: string, quantity: number) => {
     setCartItems(prev => {
+      const target = prev.find(i => i.id === itemId);
+      if (target) {
+        const product = products.find(p => p.id === target.productId);
+        if (product && product.hasStock && typeof product.stock === 'number') {
+          const otherQty = prev
+            .filter(ci => ci.productId === target.productId && ci.id !== itemId)
+            .reduce((sum, ci) => sum + ci.quantity, 0);
+          const maxForThisLine = Math.max(0, product.stock - otherQty);
+          if (quantity > maxForThisLine) quantity = maxForThisLine;
+        }
+      }
       let newCart;
       if (quantity <= 0) {
         newCart = prev.filter(item => item.id !== itemId);
@@ -254,6 +285,7 @@ const POS: React.FC = () => {
     loyaltyPointsUsed?: number;
     cashReceived?: number;
     status?: 'paid' | 'unpaid';
+    currency?: 'USD' | 'KHR';
   }) => {
     try {
       const subtotal = getCartTotal();
@@ -284,8 +316,6 @@ const POS: React.FC = () => {
         cashReceived: paymentData.paymentMethod === 'cash' ? (paymentData.cashReceived || 0) : 0,
       };
 
-      await transactionsAPI.create(transaction);
-
       const createdOrder: Order = await ordersAPI.create({
         customerId: customerIdToUse,
         items: cartItems.map(item => ({
@@ -300,6 +330,17 @@ const POS: React.FC = () => {
         notes: undefined,
         metadata: orderSchema.length > 0 ? orderMetadata : {},
       } as any);
+
+      // Immediately reflect payment on the order if status is paid
+      if (statusValue === 'paid') {
+        try {
+          await ordersAPI.updatePayment(createdOrder.id, 'paid', paymentData.paymentMethod, paymentData.discount, paymentData.cashReceived);
+          createdOrder.paymentStatus = 'paid';
+          createdOrder.paymentMethod = paymentData.paymentMethod;
+        } catch (e) {
+          console.warn('Failed to update order payment immediately:', e);
+        }
+      }
 
       printOrderReceipt(createdOrder, { paymentMethod: paymentData.paymentMethod, status: statusValue, customer: selectedCustomer });
 
@@ -376,6 +417,14 @@ const POS: React.FC = () => {
           products={filteredProducts}
           onAddToCart={addToCart}
           loading={loading}
+          cartItems={cartItems}
+          onStockBlocked={(msg) => {
+            const el = document.createElement('div');
+            el.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-[10000]';
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => { el.remove(); }, 1800);
+          }}
         />
       </div>
 
@@ -411,6 +460,15 @@ const POS: React.FC = () => {
                 onUpdateItem={updateCartItem}
                 onRemoveItem={removeFromCart}
                 onClear={clearCart}
+                products={products}
+                onStockBlocked={(msg) => {
+                  // lightweight toast-like modal
+                  const el = document.createElement('div');
+                  el.className = 'fixed top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-[10000]';
+                  el.textContent = msg;
+                  document.body.appendChild(el);
+                  setTimeout(() => { el.remove(); }, 1800);
+                }}
               />
 
               {/* Order custom fields */}

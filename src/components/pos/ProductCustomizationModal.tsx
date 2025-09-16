@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Product } from '../../services/api';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import Modal from '../ui/Modal';
 
 interface ProductCustomizationModalProps {
   product: Product;
@@ -26,8 +27,8 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
     addOns: AddOn[];
     [key: string]: any;
   }>({
-    size: product.category === 'coffee' ? 'medium' : undefined,
-    sugar: product.category === 'coffee' ? 'normal' : undefined,
+    size: undefined,
+    sugar: undefined,
     addOns: [],
   });
 
@@ -72,11 +73,13 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
     schema.forEach(group => {
       const applied = (customizations as any)[group.key];
       if (group.type === 'single' && applied) {
-        const opt = (group.options || []).find((o: any) => o.value === applied);
+        const value = (applied?.value ?? applied) as string;
+        const opt = (group.options || []).find((o: any) => o.value === value);
         if (opt) delta += Number(opt.priceDelta || 0);
       } else if (group.type === 'multi' && Array.isArray(applied)) {
-        applied.forEach((val: string) => {
-          const opt = (group.options || []).find((o: any) => o.value === val);
+        applied.forEach((val: any) => {
+          const value = (val?.value ?? val) as string;
+          const opt = (group.options || []).find((o: any) => o.value === value);
           if (opt) delta += Number(opt.priceDelta || 0);
         });
       }
@@ -110,7 +113,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
     schema.forEach(group => {
       if (group.type === 'single' && group.required && !next[group.key]) {
         const first = (group.options || [])[0];
-        if (first) next[group.key] = first.value;
+        if (first) next[group.key] = { value: first.value, label: first.label };
       }
       if (group.type === 'multi' && group.required && !Array.isArray(next[group.key])) {
         next[group.key] = [];
@@ -150,16 +153,9 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-    >
-      <div className="h-full w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-        <div
-          ref={containerRef}
-          className="modal-content max-w-md w-full mx-4"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+    <Modal isOpen={isOpen} onRequestClose={onClose} widthClass="max-w-md">
+      <div ref={containerRef} className="flex flex-col h-full">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Customize {product.name}</h2>
             <button
               onClick={onClose}
@@ -169,7 +165,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
             </button>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 overflow-auto">
             {/* Dynamic option groups */}
             {hasDynamic && (
               <div className="space-y-6">
@@ -187,8 +183,8 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                               type="radio"
                               name={`dyn_${group.key}`}
                               value={opt.value}
-                              checked={(customizations as any)[group.key] === opt.value}
-                              onChange={(e) => setCustomizations(prev => ({ ...prev, [group.key]: e.target.value }))}
+                              checked={(customizations as any)[group.key]?.value === opt.value || (customizations as any)[group.key] === opt.value}
+                              onChange={() => setCustomizations(prev => ({ ...prev, [group.key]: { value: opt.value, label: opt.label } }))}
                               className="text-primary-600"
                             />
                             <span className="flex-1 text-gray-900 dark:text-white">{opt.label}</span>
@@ -200,11 +196,14 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
                           <label key={opt.value} className="flex items-center space-x-3 cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={Array.isArray((customizations as any)[group.key]) && (customizations as any)[group.key].includes(opt.value)}
+                              checked={Array.isArray((customizations as any)[group.key]) && (customizations as any)[group.key].some((v: any) => (v?.value ?? v) === opt.value)}
                               onChange={(e) => {
                                 const curr = Array.isArray((customizations as any)[group.key]) ? [...(customizations as any)[group.key]] : [];
-                                if (e.target.checked) curr.push(opt.value); else {
-                                  const i = curr.indexOf(opt.value); if (i >= 0) curr.splice(i, 1);
+                                if (e.target.checked) {
+                                  curr.push({ value: opt.value, label: opt.label });
+                                } else {
+                                  const i = curr.findIndex((v: any) => (v?.value ?? v) === opt.value);
+                                  if (i >= 0) curr.splice(i, 1);
                                 }
                                 setCustomizations(prev => ({ ...prev, [group.key]: curr }));
                               }}
@@ -307,7 +306,7 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
             </div>
           </div>
 
-          <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex space-x-3 sticky bottom-0">
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex space-x-3 mt-auto">
             <button
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
@@ -322,9 +321,8 @@ const ProductCustomizationModal: React.FC<ProductCustomizationModalProps> = ({
               Add to Cart
             </button>
           </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

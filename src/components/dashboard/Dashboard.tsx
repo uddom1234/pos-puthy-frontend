@@ -87,10 +87,11 @@ const Dashboard: React.FC = () => {
   const StatCard: React.FC<{
     title: string;
     value: string;
+    subtitle?: string;
     icon: React.ComponentType<{ className?: string }>;
     trend?: string;
     color: 'blue' | 'green' | 'yellow' | 'red';
-  }> = ({ title, value, icon: Icon, trend, color }) => {
+  }> = ({ title, value, subtitle, icon: Icon, trend, color }) => {
     const colorClasses = {
       blue: 'bg-blue-500',
       green: 'bg-green-500',
@@ -104,6 +105,9 @@ const Dashboard: React.FC = () => {
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+            {subtitle && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>
+            )}
             {trend && (
               <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                 <ArrowTrendingUpIcon className="inline h-4 w-4 mr-1" />
@@ -133,19 +137,14 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Today's Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+      {/* Today's Overview: Revenue, Orders, Low Stock, Expenses */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           title={t('total_revenue')}
           value={`$${dailySummary?.totalRevenue.toFixed(2) || '0.00'}`}
+          subtitle={`៛${Math.round((dailySummary?.totalRevenue || 0) * 4100).toLocaleString()}`}
           icon={CurrencyDollarIcon}
           color="green"
-        />
-        <StatCard
-          title={t('todays_transactions')}
-          value={dailySummary?.transactionCount.toString() || '0'}
-          icon={ShoppingBagIcon}
-          color="blue"
         />
         <StatCard
           title={t('todays_orders')}
@@ -154,16 +153,16 @@ const Dashboard: React.FC = () => {
           color="blue"
         />
         <StatCard
-          title={t('net_profit')}
-          value={`$${dailySummary?.netProfit.toFixed(2) || '0.00'}`}
-          icon={ArrowTrendingUpIcon}
-          color="green"
-        />
-        <StatCard
           title={t('low_stock_alerts')}
           value={lowStockProducts.length.toString()}
           icon={ExclamationTriangleIcon}
           color="yellow"
+        />
+        <StatCard
+          title={t('todays_expenses')}
+          value={`$${dailySummary?.totalExpenses.toFixed(2) || '0.00'}`}
+          icon={ArrowTrendingUpIcon}
+          color="red"
         />
       </div>
 
@@ -174,19 +173,24 @@ const Dashboard: React.FC = () => {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">{t('total_revenue_label')}</span>
-              <span className="font-semibold">${monthlySummary?.totalRevenue.toFixed(2) || '0.00'}</span>
+              <div className="text-right">
+                <div className="font-semibold">${monthlySummary?.totalRevenue.toFixed(2) || '0.00'}</div>
+                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.totalRevenue || 0) * 4100).toLocaleString()}</div>
+              </div>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">{t('total_expenses_label')}</span>
-              <span className="font-semibold text-red-600">-${monthlySummary?.totalExpenses.toFixed(2) || '0.00'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">{t('orders_label')}</span>
-              <span className="font-semibold">{monthlySummary?.orderCount ?? 0}</span>
+              <div className="text-right">
+                <div className="font-semibold text-red-600">-${monthlySummary?.totalExpenses.toFixed(2) || '0.00'}</div>
+                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.totalExpenses || 0) * 4100).toLocaleString()}</div>
+              </div>
             </div>
             <div className="flex justify-between border-t pt-3">
               <span className="text-gray-900 dark:text-gray-100 font-semibold">{t('net_profit_label')}</span>
-              <span className="font-bold text-green-600">${monthlySummary?.netProfit.toFixed(2) || '0.00'}</span>
+              <div className="text-right">
+                <div className="font-bold text-green-600">${monthlySummary?.netProfit.toFixed(2) || '0.00'}</div>
+                <div className="text-sm text-gray-500">៛{Math.round((monthlySummary?.netProfit || 0) * 4100).toLocaleString()}</div>
+              </div>
             </div>
           </div>
         </div>

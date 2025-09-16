@@ -14,6 +14,7 @@ interface PaymentModalProps {
     loyaltyPointsUsed?: number;
     cashReceived?: number;
     status?: 'paid' | 'unpaid';
+    currency?: 'USD' | 'KHR';
   }) => void;
   total: number;
   customer?: Customer | null;
@@ -33,6 +34,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState<number>(0);
   const [cashReceived, setCashReceived] = useState<number>(0);
+  const [currency, setCurrency] = useState<'USD' | 'KHR'>('USD');
   // QR specific status removed; QR is treated as paid upon processing
 
   const calculateDiscount = () => {
@@ -49,6 +51,42 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const getChange = () => {
     if (paymentMethod !== 'cash') return 0;
     return Math.max(0, cashReceived - getDiscountedTotal());
+  };
+
+  const convertToKhr = (usdAmount: number) => {
+    return usdAmount * 4100; // Default rate, should be from settings
+  };
+
+  const convertToUsd = (khrAmount: number) => {
+    return khrAmount / 4100; // Default rate, should be from settings
+  };
+
+  const getDisplayTotal = () => {
+    if (currency === 'KHR') {
+      return convertToKhr(total);
+    }
+    return total;
+  };
+
+  const getDisplayDiscountedTotal = () => {
+    if (currency === 'KHR') {
+      return convertToKhr(getDiscountedTotal());
+    }
+    return getDiscountedTotal();
+  };
+
+  const getDisplayCashReceived = () => {
+    if (currency === 'KHR') {
+      return convertToKhr(cashReceived);
+    }
+    return cashReceived;
+  };
+
+  const getDisplayChange = () => {
+    if (currency === 'KHR') {
+      return convertToKhr(getChange());
+    }
+    return getChange();
   };
 
   const canProcessPayment = () => {
@@ -70,6 +108,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       loyaltyPointsUsed: loyaltyPointsUsed || 0,
       cashReceived: paymentMethod === 'cash' ? cashReceived : 0,
       status: 'paid',
+      currency,
     });
   };
 
@@ -132,6 +171,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           </div>
 
+          {/* Currency Selection */}
+          <div>
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Currency</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { code: 'USD' as const, label: 'US Dollar ($)', symbol: '$' },
+                { code: 'KHR' as const, label: 'Cambodian Riel (៛)', symbol: '៛' },
+              ].map(({ code, label, symbol }) => (
+                <button
+                  key={code}
+                  onClick={() => setCurrency(code)}
+                  className={`p-4 border-2 rounded-lg flex flex-col items-center space-y-2 transition-colors ${
+                    currency === code
+                      ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                  }`}
+                >
+                  <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">{symbol}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Discount */}
           <div>
             <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">{t('discount')}</h3>
@@ -187,19 +250,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* Cash Received */}
           {paymentMethod === 'cash' && (
             <div>
-              <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">{t('cash_received')}</h3>
+              <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">
+                {t('cash_received')} ({currency})
+              </h3>
               <NumberInput
-                value={cashReceived}
-                onChange={(value) => setCashReceived(value || 0)}
+                value={getDisplayCashReceived()}
+                onChange={(value) => {
+                  const convertedValue = currency === 'KHR' ? convertToUsd(value || 0) : (value || 0);
+                  setCashReceived(convertedValue);
+                }}
                 min={0}
-                placeholder="0.00"
+                placeholder={currency === 'KHR' ? "0" : "0.00"}
                 className="input-field w-full"
-                allowDecimals={true}
-                step={0.01}
+                allowDecimals={currency === 'USD'}
+                step={currency === 'KHR' ? 100 : 0.01}
               />
               {cashReceived > 0 && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  {t('change')}: ${getChange().toFixed(2)}
+                  {t('change')}: {currency === 'KHR' 
+                    ? `៛${Math.round(getDisplayChange()).toLocaleString()}`
+                    : `$${getDisplayChange().toFixed(2)}`
+                  }
                 </p>
               )}
             </div>
@@ -211,23 +282,43 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-900 dark:text-white">{t('subtotal')}:</span>
-              <span className="text-gray-900 dark:text-white">${total.toFixed(2)}</span>
+              <span className="text-gray-900 dark:text-white">
+                {currency === 'KHR' 
+                  ? `៛${Math.round(getDisplayTotal()).toLocaleString()}`
+                  : `$${getDisplayTotal().toFixed(2)}`
+                }
+              </span>
             </div>
             {calculateDiscount() > 0 && (
               <div className="flex justify-between text-red-600 dark:text-red-400">
                 <span>{t('discount')}:</span>
-                <span>-${calculateDiscount().toFixed(2)}</span>
+                <span>
+                  {currency === 'KHR' 
+                    ? `-៛${Math.round(convertToKhr(calculateDiscount())).toLocaleString()}`
+                    : `-$${calculateDiscount().toFixed(2)}`
+                  }
+                </span>
               </div>
             )}
             {loyaltyPointsUsed > 0 && (
               <div className="flex justify-between text-blue-600 dark:text-blue-400">
                 <span>{t('loyalty_points')}:</span>
-                <span>-${loyaltyPointsUsed.toFixed(2)}</span>
+                <span>
+                  {currency === 'KHR' 
+                    ? `-៛${Math.round(convertToKhr(loyaltyPointsUsed)).toLocaleString()}`
+                    : `-$${loyaltyPointsUsed.toFixed(2)}`
+                  }
+                </span>
               </div>
             )}
             <div className="flex justify-between text-lg font-semibold border-t border-gray-200 dark:border-gray-700 pt-2">
               <span className="text-gray-900 dark:text-white">Total:</span>
-              <span className="text-gray-900 dark:text-white">${getDiscountedTotal().toFixed(2)}</span>
+              <span className="text-gray-900 dark:text-white">
+                {currency === 'KHR' 
+                  ? `៛${Math.round(getDisplayDiscountedTotal()).toLocaleString()}`
+                  : `$${getDisplayDiscountedTotal().toFixed(2)}`
+                }
+              </span>
             </div>
           </div>
         </div>
