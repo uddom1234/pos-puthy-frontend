@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { productsAPI, customersAPI, transactionsAPI, ordersAPI, schemasAPI, categoriesAPI, publicPreviewAPI, Product, Customer, DynamicField, Order } from '../../services/api';
 import { readAppSettings } from '../../contexts/AppSettingsContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { printOrderReceipt } from '../../utils/printReceipt';
+import { printOrderReceipt, printStaffOrderReceipt } from '../../utils/printReceipt';
 import DynamicForm from '../common/DynamicForm';
 import ProductGrid from './ProductGrid';
 import Cart from './Cart';
@@ -193,8 +193,8 @@ const POS: React.FC = () => {
   };
 
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase())
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const addToCart = (product: Product, customizations?: any) => {

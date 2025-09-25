@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ordersAPI, Order, schemasAPI, DynamicField } from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { printOrderReceipt } from '../../utils/printReceipt';
+import { PencilIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { printOrderReceipt, printStaffOrderReceipt } from '../../utils/printReceipt';
 import { readAppSettings } from '../../contexts/AppSettingsContext';
 import { formatCambodianTime, formatRelativeTime } from '../../utils/timeUtils';
 import EditOrderModal from './EditOrderModal';
@@ -21,6 +21,7 @@ const Orders: React.FC = () => {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [openPrintDropdown, setOpenPrintDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -35,6 +36,21 @@ const Orders: React.FC = () => {
       } catch {}
     })();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (openPrintDropdown && !target.closest('.print-dropdown')) {
+        setOpenPrintDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openPrintDropdown]);
 
   const fetchOrders = async () => {
     try {
@@ -292,12 +308,39 @@ const Orders: React.FC = () => {
                     <div className="text-sm text-gray-500">៛ {(order.total * (readAppSettings().currencyRate || 4100)).toFixed(0)}</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => printOrderReceipt(order)}
-                      className="btn-outline text-sm"
-                    >
-                      Print
-                    </button>
+                    <div className="relative print-dropdown">
+                      <button
+                        onClick={() => setOpenPrintDropdown(openPrintDropdown === order.id ? null : order.id)}
+                        className="btn-outline text-sm flex items-center space-x-1"
+                      >
+                        <span>Print</span>
+                        <ChevronDownIcon className="h-4 w-4" />
+                      </button>
+                      {openPrintDropdown === order.id && (
+                        <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              printOrderReceipt(order);
+                              setOpenPrintDropdown(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg"
+                          >
+                            Customer Receipt
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              printStaffOrderReceipt(order);
+                              setOpenPrintDropdown(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-lg border-t border-gray-200 dark:border-gray-700"
+                          >
+                            Staff Slip
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={() => setSelectedOrderForEdit(order)}
                       className="btn-outline text-sm flex items-center space-x-1"

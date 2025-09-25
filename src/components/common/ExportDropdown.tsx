@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDownIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, DocumentArrowDownIcon, PrinterIcon } from '@heroicons/react/24/outline';
 
 export interface ExportOption {
   id: string;
@@ -28,6 +28,13 @@ const ExportDropdown: React.FC<ExportDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const exportOptions: ExportOption[] = [
+    {
+      id: 'print',
+      label: 'Print',
+      extension: '',
+      mimeType: '',
+      icon: PrinterIcon
+    },
     {
       id: 'json',
       label: 'JSON',
@@ -101,7 +108,7 @@ const ExportDropdown: React.FC<ExportDropdownProps> = ({
               >
                 {option.icon && <option.icon className="h-4 w-4 mr-3" />}
                 <span className="flex-1 text-left">{option.label}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">.{option.extension}</span>
+                {option.extension && <span className="text-xs text-gray-500 dark:text-gray-400">.{option.extension}</span>}
               </button>
             ))}
           </div>

@@ -135,10 +135,42 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Payment Method + Pay Later */}
+          {/* Payment Options */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">{t('payment_method')}</h3>
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">{t('payment_method')}</h3>
+            <div className="space-y-3">
+              {/* Immediate Payment Methods */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { method: 'cash' as const, icon: BanknotesIcon, label: t('cash') },
+                  { method: 'qr' as const, icon: QrCodeIcon, label: t('qr_code') },
+                ].map(({ method, icon: Icon, label }) => (
+                  <button
+                    key={method}
+                    onClick={() => setPaymentMethod(method)}
+                    className={`p-4 border-2 rounded-lg flex flex-col items-center space-y-2 transition-colors ${
+                      paymentMethod === method
+                        ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
+                  >
+                    <Icon className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or</span>
+                </div>
+              </div>
+
+              {/* Pay Later Option */}
               <button
                 type="button"
                 onClick={() =>
@@ -148,31 +180,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     loyaltyPointsUsed: loyaltyPointsUsed || 0,
                     cashReceived: 0,
                     status: 'unpaid',
+                    currency,
                   })
                 }
-                className="px-3 py-1.5 border border-yellow-300 dark:border-yellow-600 text-yellow-800 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-sm"
+                className="w-full p-4 border-2 border-yellow-300 dark:border-yellow-600 text-yellow-800 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors flex items-center justify-center space-x-2"
               >
-{t('pay_later')}
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">{t('pay_later')}</span>
               </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { method: 'cash' as const, icon: BanknotesIcon, label: t('cash') },
-                { method: 'qr' as const, icon: QrCodeIcon, label: t('qr_code') },
-              ].map(({ method, icon: Icon, label }) => (
-                <button
-                  key={method}
-                  onClick={() => setPaymentMethod(method)}
-                  className={`p-4 border-2 rounded-lg flex flex-col items-center space-y-2 transition-colors ${
-                    paymentMethod === method
-                      ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <Icon className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
-                </button>
-              ))}
             </div>
           </div>
 
@@ -201,8 +218,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
 
           {/* Discount */}
-          <div>
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">{t('discount')}</h3>
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white flex items-center space-x-2">
+              <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <span>{t('discount')}</span>
+            </h3>
             <div className="space-y-3">
               <div className="flex space-x-2">
                 <select
@@ -223,11 +245,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   allowDecimals={true}
                 />
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t('discount')}: ${calculateDiscount().toFixed(2)}
-              </p>
+              {calculateDiscount() > 0 && (
+                <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-green-800 dark:text-green-300 font-medium">
+                    {t('discount')}: ${calculateDiscount().toFixed(2)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+
 
           {/* Loyalty Points */}
           {customer && customer.loyaltyPoints > 0 && (

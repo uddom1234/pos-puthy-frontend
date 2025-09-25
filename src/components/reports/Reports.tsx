@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { FunnelIcon, ChartBarIcon, DocumentTextIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import ExportDropdown from '../common/ExportDropdown';
 import { exportData } from '../../utils/exportHandlers';
+import { printTodayReport } from '../../utils/printReceipt';
 import { CardSkeleton, TableSkeleton, ChartSkeleton, FilterSkeleton } from '../common/SkeletonLoader';
 
 interface SalesSummary {
@@ -244,11 +245,37 @@ const Reports: React.FC = () => {
   }, [fetchAllData]);
 
   const handleExport = (format: string) => {
+    if (format === 'print') {
+      handlePrint();
+      return;
+    }
+
     const currentData = getCurrentReportData();
     if (!currentData) return;
 
-    const filename = `report-${activeTab}-${filters.period || 'custom'}-${new Date().toISOString().split('T')[0]}`;
+    const today = new Date();
+    const readableDate = today.toLocaleDateString('en-GB').replace(/\//g, '-'); // DD-MM-YYYY format for filename
+    const filename = `Smach Cafe - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report - ${readableDate}`;
     exportData(format, currentData, filename);
+  };
+
+  const handlePrint = () => {
+    if (!summaryData) return;
+
+    const itemsData = summaryData.itemsSold && Array.isArray(summaryData.itemsSold)
+      ? summaryData.itemsSold.map(item => ({
+          productName: item.productName,
+          quantity: item.quantity
+        }))
+      : [];
+
+    printTodayReport({
+      totalRevenue: summaryData.totalRevenue,
+      totalExpenses: summaryData.totalExpenses,
+      netProfit: summaryData.netProfit,
+      orderCount: summaryData.orderCount,
+      itemsSold: itemsData
+    });
   };
 
   const getCurrentReportData = () => {
@@ -301,7 +328,11 @@ const Reports: React.FC = () => {
           <ExportDropdown
             onExport={handleExport}
             data={getCurrentReportData() || {}}
-            filename={`report-${activeTab}-${filters.period || 'custom'}-${new Date().toISOString().split('T')[0]}`}
+            filename={(() => {
+              const today = new Date();
+              const readableDate = today.toLocaleDateString('en-GB').replace(/\//g, '-');
+              return `Smach Cafe - ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report - ${readableDate}`;
+            })()}
             disabled={!getCurrentReportData()}
           />
         </div>
